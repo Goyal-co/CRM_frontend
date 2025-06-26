@@ -82,7 +82,7 @@ export default function AutoLeadsSection({ email }) {
 
     try {
       console.log("Initiating MCUBE call with:", { agentNumber, customerNumber, leadId });
-      const url = `http://localhost:5000/api/trigger-call?agent=${encodeURIComponent(agentNumber)}&customer=${encodeURIComponent(customerNumber)}&leadId=${encodeURIComponent(leadId)}`;
+      const url = `https://pratham-server.onrender.com/api/trigger-call?agent=${encodeURIComponent(agentNumber)}&customer=${encodeURIComponent(customerNumber)}&leadId=${encodeURIComponent(leadId)}`;
       const res = await fetch(url, {
         method: "GET",
         headers: {
@@ -122,7 +122,7 @@ export default function AutoLeadsSection({ email }) {
         url
       });
       if (error.message.includes("Failed to fetch")) {
-        alert("Error: Unable to connect to the server. Ensure the server is running on http://localhost:5000 and check your network.");
+        alert("Error: Unable to connect to the server. Ensure the server is running on https://pratham-server.onrender.com  and check your network.");
       } else {
         alert(`Call failed: ${error.message}. Please try again or contact support.`);
       }
@@ -136,7 +136,7 @@ export default function AutoLeadsSection({ email }) {
     const notes = prompt("Enter any additional notes (optional):");
     
     try {
-      const res = await fetch("http://localhost:5000/api/update-call-status", {
+      const res = await fetch("https://pratham-server.onrender.com/api/update-call-status", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

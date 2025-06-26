@@ -4,9 +4,9 @@ import AdminDashboard from "./AdminDashboard";
 import UserDashboard from "./UserDashboard";
 import LeadDetailPage from "./LeadDetailPage";
 import HomeDashboard from "./HomeDashboard";
-import LeadsPage from "./pages/LeadsPage";
-import AutoLeadsSection from "./pages/AutoLeadsSection";
-import ManualLeadsSection from "./pages/ManualLeadsSection";
+import LeadsPage from "./Pages/LeadsPage";
+import AutoLeadsSection from "./Pages/AutoLeadsSection";
+import ManualLeadsSection from "./Pages/ManualLeadsSection";
 import PerformancePage from "./PerformancePage";
 import StatusPage from "./StatusPage";
 import TitanAiCallAnalysis from "./TitanAiCallAnalysis";
@@ -28,7 +28,7 @@ import TitanBrainPage from "./TitanBrainPage";
 
 export default function App() {
   const email = localStorage.getItem("email");
-  const isAdmin = email === "avularudrasekharreddy@gmail.com";
+  const isAdmin = email === "pratham.goyalhariyana@gmail.com" || email === "avularudrasekharreddy@gmail.com";
   // "pratham.goyalhariyana@gmail.com";
 
   return (
