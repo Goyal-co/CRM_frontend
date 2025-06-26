@@ -23,7 +23,7 @@ export default function PitchPalPage() {
       }
 
       // Send to backend AI endpoint
-      const backendRes = await fetch("http://localhost:5000/api/generate-pitch", {
+      const backendRes = await fetch("http://localhost:5000/api/generate-pitch"|| "https://crm-frontend-rudra-avulas-projects.vercel.app/api/generate-pitch" || "https://crm-frontend-virid-theta.vercel.app/api/generate-pitch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ projectInfo }),
