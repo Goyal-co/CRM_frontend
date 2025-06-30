@@ -180,12 +180,12 @@ export default function CallRecordingsPanel() {
                         🎵 Play
                       </button>
                     ) : (
-                      recording.status === 'Call complete' ? (
+                      (recording.status === 'Call complete' || recording.status?.toLowerCase().includes('answered')) ? (
                         <button
                           onClick={() => downloadRecordingToFirebase(recording.callId, recording.executive, recording.customer)}
                           className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
                         >
-                          ⬇️ Download Recording
+                          ⬇️ Get Recording
                         </button>
                       ) : (
                         <span className="text-gray-400 text-sm">No recording</span>
