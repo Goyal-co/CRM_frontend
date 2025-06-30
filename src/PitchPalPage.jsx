@@ -1,5 +1,7 @@
 import { useState } from "react";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export default function PitchPalPage() {
   const [projectName, setProjectName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -23,7 +25,7 @@ export default function PitchPalPage() {
       }
 
       // Send to backend AI endpoint
-      const backendRes = await fetch("https://crm-frontend-rudra-avulas-projects.vercel.app/api/generate-pitch" || "https://crm-frontend-virid-theta.vercel.app/api/generate-pitch", {
+      const backendRes = await fetch(`${API_URL}/api/generate-pitch`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ projectInfo }),
@@ -102,8 +104,7 @@ function Section({ title, content, projectName, fieldKey }) {
 
     const flaggedBy = localStorage.getItem("email") || "unknown";
 
-    await fetch("http://localhost:5000/api/admin/wrong-entries", {
-
+    await fetch(`${API_URL}/api/admin/wrong-entries`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
