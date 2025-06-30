@@ -101,6 +101,11 @@ export default function AutoLeadsSection({ email }) {
         const callId = data.mcubeResponse?.callid ? `\nCall ID: ${data.mcubeResponse.callid}` : '';
         alert(`📞 ${data.message}${callId}\n\nNote: ${data.note || 'Call initiated successfully!'}`);
         
+        // Store last call info for status update and recording download
+        window.lastCallId = data.mcubeResponse?.callid || null;
+        window.lastAgentNumber = agentNumber;
+        window.lastCustomerNumber = customerNumber;
+        
         // Show manual status update option after a delay
         setTimeout(() => {
           const shouldUpdate = confirm("Did you complete the call? Would you like to update the call status manually?");
@@ -165,13 +170,18 @@ export default function AutoLeadsSection({ email }) {
   };
 
   const updateCallStatusManually = async (leadId) => {
-    const status = prompt("Enter call status (e.g., 'Connected', 'Not Answered', 'Busy', 'Wrong Number'):");
+    const status = prompt("Enter call status (e.g., 'Connected', 'Not Answered', 'Busy', 'Wrong Number', 'Call complete', 'answered'):");
     if (!status) return;
     
     const notes = prompt("Enter any additional notes (optional):");
     
+    // Get callId, agent, and customer from the last call (if available)
+    const lastCallId = window.lastCallId || null;
+    const agent = window.lastAgentNumber || null;
+    const customer = window.lastCustomerNumber || null;
+
     try {
-      const res = await fetch("https://pratham-server.onrender.com/api/update-call-status", {
+      const res = await fetch(`${API_URL}/api/update-call-status`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -179,7 +189,10 @@ export default function AutoLeadsSection({ email }) {
         body: JSON.stringify({
           leadId,
           status,
-          notes
+          notes,
+          callId: lastCallId,
+          agent,
+          customer
         })
       });
 
