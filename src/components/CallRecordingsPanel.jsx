@@ -67,6 +67,25 @@ export default function CallRecordingsPanel() {
     }
   };
 
+  const downloadRecordingToFirebase = async (callId, agent, customer) => {
+    try {
+      const res = await fetch(`${API_URL}/api/download-recording`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ callId, agent, customer })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('✅ Recording downloaded and uploaded to Firebase!');
+        fetchRecordings(); // Refresh list
+      } else {
+        alert('❌ Download failed: ' + (data.error || 'Unknown error'));
+      }
+    } catch (error) {
+      alert('Download failed: ' + error.message);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -161,7 +180,16 @@ export default function CallRecordingsPanel() {
                         🎵 Play
                       </button>
                     ) : (
-                      <span className="text-gray-400 text-sm">No recording</span>
+                      recording.status === 'Call complete' ? (
+                        <button
+                          onClick={() => downloadRecordingToFirebase(recording.callId, recording.executive, recording.customer)}
+                          className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+                        >
+                          ⬇️ Download Recording
+                        </button>
+                      ) : (
+                        <span className="text-gray-400 text-sm">No recording</span>
+                      )
                     )}
                   </td>
                   <td className="px-6 py-4">
