@@ -129,6 +129,41 @@ export default function AutoLeadsSection({ email }) {
     }
   };
 
+  const downloadRecordingToFirebase = async (callId, leadId, agent, customer) => {
+    try {
+      console.log("Downloading recording to Firebase:", { callId, leadId, agent, customer });
+      
+      const res = await fetch(`${API_URL}/api/download-recording`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          callId,
+          leadId,
+          agent,
+          customer
+        })
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! Status: ${res.status} ${res.statusText}`);
+      }
+
+      const data = await res.json();
+      console.log("Download response:", data);
+
+      if (data.success) {
+        alert(`✅ Recording downloaded successfully!\n\nFirebase URL: ${data.firebaseUrl}\n\nYou can now view it in the admin panel.`);
+      } else {
+        alert(`❌ Download failed: ${data.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error("Download error:", error);
+      alert(`Download failed: ${error.message}. Please try again later.`);
+    }
+  };
+
   const updateCallStatusManually = async (leadId) => {
     const status = prompt("Enter call status (e.g., 'Connected', 'Not Answered', 'Busy', 'Wrong Number'):");
     if (!status) return;
