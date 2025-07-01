@@ -14,7 +14,7 @@ export default function PitchPalPage() {
     try {
       // Fetch project info from Google Sheet
       const sheetRes = await fetch(
-        `https://script.google.com/macros/s/AKfycbyWzCFNuv-8Ugr-pzD4VJ08-QJ20RxvENe1bocm2Ya_2A02lrxH_WvmWddKqB_P8Ccm/exec?action=getProjectInfo&project=${encodeURIComponent(projectName)}`
+        `https://script.google.com/macros/s/AKfycbwzfrMTurwHJ7BllZuCpMLzrmZC8nOraJ2eEOhY4ZCuWgWn50zZ3A4nwwb-a9tTdAmr/exec?action=getProjectInfo&project=${encodeURIComponent(projectName)}`
       );
       const projectInfo = await sheetRes.json();
 

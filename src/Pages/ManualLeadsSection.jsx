@@ -17,7 +17,7 @@ export default function ManualLeadsSection({ email }) {
   const [currentPage, setCurrentPage] = useState(1);
   const leadsPerPage = 10;
 
-  const scriptUrl = `https://script.google.com/macros/s/AKfycbyWzCFNuv-8Ugr-pzD4VJ08-QJ20RxvENe1bocm2Ya_2A02lrxH_WvmWddKqB_P8Ccm/exec`;
+  const scriptUrl = `https://script.google.com/macros/s/AKfycbwzfrMTurwHJ7BllZuCpMLzrmZC8nOraJ2eEOhY4ZCuWgWn50zZ3A4nwwb-a9tTdAmr/exec`;
 
   const fetchManualLeads = async () => {
     const res = await fetch(`${scriptUrl}?action=getManualLeads&email=${email}`);

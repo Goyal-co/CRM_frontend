@@ -6,7 +6,7 @@ export default function LeadDetailPage() {
   const [leads, setLeads] = useState([]);
 
   useEffect(() => {
-  const url = `https://script.google.com/macros/s/AKfycbyWzCFNuv-8Ugr-pzD4VJ08-QJ20RxvENe1bocm2Ya_2A02lrxH_WvmWddKqB_P8Ccm/exec?email=${email}`;
+  const url = `https://script.google.com/macros/s/AKfycbwzfrMTurwHJ7BllZuCpMLzrmZC8nOraJ2eEOhY4ZCuWgWn50zZ3A4nwwb-a9tTdAmr/exec?email=${email}`;
 
   fetch(url)
   .then((res) => res.json())

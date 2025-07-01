@@ -13,7 +13,7 @@ export default function PerformancePage() {
   });
 
   const fetchPerformance = async () => {
-    const url = `https://script.google.com/macros/s/AKfycbyWzCFNuv-8Ugr-pzD4VJ08-QJ20RxvENe1bocm2Ya_2A02lrxH_WvmWddKqB_P8Ccm/exec?action=getPerformance&email=${email}`;
+    const url = `https://script.google.com/macros/s/AKfycbwzfrMTurwHJ7BllZuCpMLzrmZC8nOraJ2eEOhY4ZCuWgWn50zZ3A4nwwb-a9tTdAmr/exec?action=getPerformance&email=${email}`;
     const res = await fetch(url);
     const data = await res.json();
     setPerformance(data);
