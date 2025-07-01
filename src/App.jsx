@@ -10,6 +10,7 @@ import ManualLeadsSection from "./Pages/ManualLeadsSection";
 import PerformancePage from "./PerformancePage";
 import StatusPage from "./StatusPage";
 import TitanAiCallAnalysis from "./TitanAiCallAnalysis";
+import CallRecordingsPanel from "./components/CallRecordingsPanel";
 
 // ✅ Import the new Leaderboard page
 import LeaderboardPage from "./LeaderboardPage";
@@ -52,6 +53,12 @@ export default function App() {
         <Route
           path="/admin/titan-brain"
           element={isAdmin ? <TitanBrainPage /> : <Navigate to="/" />}
+        />
+
+        {/* ✅ Call Recordings (admin-only) */}
+        <Route
+          path="/admin/recordings"
+          element={isAdmin ? <CallRecordingsPanel /> : <Navigate to="/" />}
         />
 
         {/* Presales Redirect + Pages */}

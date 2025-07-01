@@ -168,7 +168,7 @@ export default function AdminDashboard() {
         <ChartCard title="📈 Bookings Over Time" toggle={showLine} setToggle={setShowLine} />
         <ChartCard title="🧩 Lead Quality Breakdown" toggle={showPie} setToggle={setShowPie} />
         <ChartCard title="🧠 Titan Brain – AI Corrections" toggle={false} setToggle={() => navigate("/admin/titan-brain")} />
-        <ChartCard title="📞 Recent Call Recordings" toggle={false} setToggle={() => navigate("/admin/call-analytics")} />
+        <ChartCard title="📞 Call Recordings" toggle={false} setToggle={() => navigate("/admin/recordings")} />
         <ChartCard title="🧠 Titan AI Call Analysis" toggle={false} setToggle={() => window.open("https://famous-wasps-help.loca.lt/admin/ai-call-analysis", "_blank")} />
       </div>
 

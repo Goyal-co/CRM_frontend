@@ -1,238 +1,179 @@
 import { useState, useEffect } from 'react';
 
-const API_URL = import.meta.env.VITE_API_URL;
-
 export default function CallRecordingsPanel() {
-  const [recordings, setRecordings] = useState([]);
-  const [stats, setStats] = useState(null);
+  const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedRecording, setSelectedRecording] = useState(null);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [selectedLead, setSelectedLead] = useState(null);
+
+  const scriptUrl = 'https://script.google.com/macros/s/AKfycbyWzCFNuv-8Ugr-pzD4VJ08-QJ20RxvENe1bocm2Ya_2A02lrxH_WvmWddKqB_P8Ccm/exec';
 
   useEffect(() => {
-    fetchRecordings();
-    fetchStats();
-  }, [page]);
+    fetchLeadsWithRecordings();
+  }, []);
 
-  const fetchRecordings = async () => {
+  const fetchLeadsWithRecordings = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/recordings?page=${page}&limit=10`);
+      const response = await fetch(`${scriptUrl}?action=getAllLeads`);
       const data = await response.json();
-      setRecordings(data.recordings);
-      setTotalPages(data.totalPages);
+      
+      // Filter leads that have recordings
+      const leadsWithRecordings = data.filter(lead => {
+        try {
+          const recordings = JSON.parse(lead.Recordings || '{}');
+          return recordings.url && recordings.url.trim() !== '';
+        } catch (e) {
+          return false;
+        }
+      });
+      
+      setLeads(leadsWithRecordings);
     } catch (error) {
-      console.error('Error fetching recordings:', error);
+      console.error('Error fetching leads:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchStats = async () => {
+  const parseRecordingInfo = (recordingsJson) => {
     try {
-      const response = await fetch(`${API_URL}/api/call-stats`);
-      const data = await response.json();
-      setStats(data);
-    } catch (error) {
-      console.error('Error fetching stats:', error);
+      return JSON.parse(recordingsJson || '{}');
+    } catch (e) {
+      return {};
     }
   };
 
-  const formatDuration = (seconds) => {
-    if (!seconds) return '0s';
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
-  };
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleString();
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'Call complete': return 'text-green-600 bg-green-100';
-      case 'Customer Busy': return 'text-yellow-600 bg-yellow-100';
-      case 'Executive Busy': return 'text-red-600 bg-red-100';
-      default: return 'text-gray-600 bg-gray-100';
-    }
-  };
-
-  const playRecording = (recording) => {
-    if (recording.firebaseRecordingUrl) {
-      window.open(recording.firebaseRecordingUrl, '_blank');
-    } else {
-      alert('No recording available for this call');
-    }
-  };
-
-  const downloadRecordingToFirebase = async (callId, agent, customer) => {
+  const downloadRecording = async (recordingUrl, callId) => {
     try {
-      const res = await fetch(`${API_URL}/api/download-recording`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ callId, agent, customer })
-      });
-      const data = await res.json();
-      if (data.success) {
-        alert('✅ Recording downloaded and uploaded to Firebase!');
-        fetchRecordings(); // Refresh list
+      const response = await fetch(recordingUrl);
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${callId}.wav`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
       } else {
-        alert('❌ Download failed: ' + (data.error || 'Unknown error'));
+        alert('Failed to download recording. URL may be expired or inaccessible.');
       }
     } catch (error) {
-      alert('Download failed: ' + error.message);
+      console.error('Error downloading recording:', error);
+      alert('Error downloading recording. Please try again.');
     }
+  };
+
+  const openRecordingInNewTab = (recordingUrl) => {
+    window.open(recordingUrl, '_blank');
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-gray-500">Loading recordings...</div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">📞 Call Recordings</h1>
-
-      {/* Stats Cards */}
-      {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white p-4 rounded-lg shadow">
-            <h3 className="text-sm font-medium text-gray-500">Total Calls</h3>
-            <p className="text-2xl font-bold text-blue-600">{stats.total}</p>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow">
-            <h3 className="text-sm font-medium text-gray-500">Completed</h3>
-            <p className="text-2xl font-bold text-green-600">{stats.completed}</p>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow">
-            <h3 className="text-sm font-medium text-gray-500">With Recordings</h3>
-            <p className="text-2xl font-bold text-purple-600">{stats.recordingsWithAudio}</p>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow">
-            <h3 className="text-sm font-medium text-gray-500">Avg Duration</h3>
-            <p className="text-2xl font-bold text-orange-600">{formatDuration(stats.averageDuration)}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Recordings Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-800">Recent Call Recordings</h2>
-        </div>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-3xl font-bold text-gray-900 mb-8">📞 Call Recordings</h1>
         
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Call Details
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Duration
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Recording
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Analysis
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {recordings.map((recording) => (
-                <tr key={recording.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
+        {leads.length === 0 ? (
+          <div className="bg-white rounded-lg shadow p-8 text-center">
+            <div className="text-gray-500 text-lg mb-4">No recordings found</div>
+            <p className="text-gray-400">
+              Call recordings will appear here once MCUBE callbacks are received.
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-6">
+            {leads.map((lead, index) => {
+              const recordingInfo = parseRecordingInfo(lead.Recordings);
+              
+              return (
+                <div key={index} className="bg-white rounded-lg shadow-md p-6">
+                  <div className="flex justify-between items-start mb-4">
                     <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {recording.executive} → {recording.customer}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {formatDate(recording.createdAt)}
-                      </div>
-                      <div className="text-xs text-gray-400">
-                        ID: {recording.callId}
+                      <h3 className="text-xl font-semibold text-gray-900">
+                        {lead.Name || 'Unknown Name'}
+                      </h3>
+                      <p className="text-gray-600">{lead.Phone || 'No phone'}</p>
+                      <p className="text-sm text-gray-500">Lead ID: {lead['Lead ID']}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        recordingInfo.status === 'Call complete' 
+                          ? 'bg-green-100 text-green-800'
+                          : recordingInfo.status === 'Customer Busy'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {recordingInfo.status || 'Unknown'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-2">Call Details</h4>
+                      <div className="space-y-1 text-sm text-gray-600">
+                        <p><strong>Call ID:</strong> {recordingInfo.callId || 'N/A'}</p>
+                        <p><strong>Duration:</strong> {recordingInfo.duration || 'N/A'} seconds</p>
+                        <p><strong>Answered Time:</strong> {recordingInfo.answeredTime || 'N/A'} seconds</p>
+                        <p><strong>Timestamp:</strong> {recordingInfo.timestamp ? new Date(recordingInfo.timestamp).toLocaleString() : 'N/A'}</p>
                       </div>
                     </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-900">
-                    {formatDuration(recording.duration)}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(recording.status)}`}>
-                      {recording.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    {recording.firebaseRecordingUrl ? (
-                      <button
-                        onClick={() => playRecording(recording)}
-                        className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                      >
-                        🎵 Play
-                      </button>
-                    ) : (
-                      (recording.status === 'Call complete' || recording.status?.toLowerCase().includes('answered')) ? (
-                        <button
-                          onClick={() => downloadRecordingToFirebase(recording.callId, recording.executive, recording.customer)}
-                          className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
-                        >
-                          ⬇️ Get Recording
-                        </button>
-                      ) : (
-                        <span className="text-gray-400 text-sm">No recording</span>
-                      )
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      recording.analysisStatus === 'completed' 
-                        ? 'text-green-600 bg-green-100' 
-                        : 'text-yellow-600 bg-yellow-100'
-                    }`}>
-                      {recording.analysisStatus || 'pending'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-2">Recording</h4>
+                      <div className="space-y-2">
+                        <p className="text-sm text-gray-600 break-all">
+                          <strong>URL:</strong> {recordingInfo.url || 'No recording URL'}
+                        </p>
+                        {recordingInfo.url && (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => openRecordingInNewTab(recordingInfo.url)}
+                              className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                            >
+                              🎵 Play
+                            </button>
+                            <button
+                              onClick={() => downloadRecording(recordingInfo.url, recordingInfo.callId)}
+                              className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
+                            >
+                              💾 Download
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-700">
-                Page {page} of {totalPages}
-              </div>
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => setPage(Math.max(1, page - 1))}
-                  disabled={page === 1}
-                  className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50"
-                >
-                  Previous
-                </button>
-                <button
-                  onClick={() => setPage(Math.min(totalPages, page + 1))}
-                  disabled={page === totalPages}
-                  className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
+                  {lead['Feedback 1'] && (
+                    <div className="mt-4 p-3 bg-gray-50 rounded">
+                      <h4 className="font-medium text-gray-900 mb-1">Feedback</h4>
+                      <p className="text-sm text-gray-600">{lead['Feedback 1']}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
+
+        <div className="mt-8 text-center">
+          <button
+            onClick={fetchLeadsWithRecordings}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            🔄 Refresh Recordings
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -181,7 +181,7 @@ export default function AutoLeadsSection({ email }) {
     const customer = window.lastCustomerNumber || null;
 
     try {
-      const res = await fetch(`${API_URL}/api/update-call-status`, {
+      const res = await fetch("https://pratham-server.onrender.com/api/update-call-status", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
