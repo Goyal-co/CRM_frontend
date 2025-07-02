@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 export default function CallRecordingsPanel() {
   const [calls, setCalls] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [analyzingId, setAnalyzingId] = useState(null);
 
   useEffect(() => {
     fetchCalls();
@@ -13,11 +14,28 @@ export default function CallRecordingsPanel() {
       setLoading(true);
       const response = await fetch('https://pratham-server.onrender.com/api/call-recordings');
       const data = await response.json();
-      setCalls(data.recordings || []);
+      const filtered = (data.recordings || []).filter(call => Number(call.answeredtime) > 0);
+      setCalls(filtered);
     } catch (error) {
       console.error('Error fetching calls:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const triggerAnalysis = async (docId) => {
+    setAnalyzingId(docId);
+    try {
+      await fetch('https://pratham-server.onrender.com/api/analyze-call', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ docId })
+      });
+      await fetchCalls();
+    } catch (err) {
+      alert('Failed to analyze call.');
+    } finally {
+      setAnalyzingId(null);
     }
   };
 
@@ -102,8 +120,19 @@ export default function CallRecordingsPanel() {
                 )}
                 {call.transcript && (
                   <div className="mt-4 p-3 bg-gray-50 rounded">
-                    <h4 className="font-medium text-gray-900 mb-1">Transcript</h4>
+                    <h4 className="font-medium text-gray-900 mb-1">Call Transcript</h4>
                     <p className="text-sm text-gray-600 whitespace-pre-line">{call.transcript}</p>
+                  </div>
+                )}
+                {(!call.transcript || !call.analysis) && (
+                  <div className="mt-4 text-center">
+                    <button
+                      onClick={() => triggerAnalysis(call.docId)}
+                      className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+                      disabled={analyzingId === call.docId}
+                    >
+                      {analyzingId === call.docId ? 'Analyzing...' : 'Analyze Call'}
+                    </button>
                   </div>
                 )}
               </div>
