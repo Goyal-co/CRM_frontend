@@ -102,22 +102,22 @@ export default function CallRecordingsPanel() {
                       {call.filename && (
                         <audio controls src={call.filename} style={{ maxWidth: 300 }} />
                       )}
+                      {call.analysis && (
+                        <div className="mt-4 p-3 bg-gray-50 rounded">
+                          <h4 className="font-medium text-gray-900 mb-1">AI Analysis</h4>
+                          <div className="space-y-1 text-sm text-gray-600">
+                            <p><strong>Summary:</strong> {call.analysis.summary}</p>
+                            <p><strong>Pitch Score:</strong> {call.analysis.pitchScore}/10</p>
+                            <p><strong>Mistakes:</strong> {Array.isArray(call.analysis.mistakes) ? call.analysis.mistakes.join(', ') : call.analysis.mistakes}</p>
+                            <p><strong>Customer Tone:</strong> {call.analysis.customerTone}</p>
+                            <p><strong>Recommendation:</strong> {call.analysis.recommendation}</p>
+                            <p><strong>Follow Up Suggestion:</strong> {call.analysis.followUpSuggestion}</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
-                {call.analysis && (
-                  <div className="mt-4 p-3 bg-gray-50 rounded">
-                    <h4 className="font-medium text-gray-900 mb-1">AI Analysis</h4>
-                    <div className="space-y-1 text-sm text-gray-600">
-                      <p><strong>Summary:</strong> {call.analysis.summary}</p>
-                      <p><strong>Pitch Score:</strong> {call.analysis.pitchScore}/10</p>
-                      <p><strong>Mistakes:</strong> {Array.isArray(call.analysis.mistakes) ? call.analysis.mistakes.join(', ') : call.analysis.mistakes}</p>
-                      <p><strong>Customer Tone:</strong> {call.analysis.customerTone}</p>
-                      <p><strong>Recommendation:</strong> {call.analysis.recommendation}</p>
-                      <p><strong>Follow Up Suggestion:</strong> {call.analysis.followUpSuggestion}</p>
-                    </div>
-                  </div>
-                )}
                 {call.transcript && (
                   <div className="mt-4 p-3 bg-gray-50 rounded">
                     <h4 className="font-medium text-gray-900 mb-1">Call Transcript</h4>
