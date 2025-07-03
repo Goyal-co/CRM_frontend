@@ -12,7 +12,7 @@ export default function TitanBrain() {
   const fetchCorrections = async () => {
     setLoading(true);
     try {
-      const res = await axios.get("http://localhost:5000/api/pitchCorr/get-corrections?project=Orchid Platinum");
+      const res = await axios.get("https://pratham-server.onrender.com/api/pitchCorr/get-corrections?project=Orchid Platinum");
       setCorrections(res.data.filter(item => item.markedAsWrong)); // ✅ Only show marked wrong
     } catch (err) {
       console.error("Error fetching corrections:", err);
@@ -23,7 +23,7 @@ export default function TitanBrain() {
 
   const deleteCorrection = async (id) => {
     try {
-      await axios.delete(`http://localhost:5000/api/pitchCorr/${id}`);
+      await axios.delete(`https://pratham-server.onrender.com/api/pitchCorr/${id}`);
       setCorrections((prev) => prev.filter((entry) => entry._id !== id));
     } catch (err) {
       console.error("Failed to delete correction:", err);
