@@ -96,31 +96,31 @@ export default function CallRecordingsPanel() {
         ) : (
           <div className="grid gap-6">
             {calls.map((call, index) => (
-              <div key={index} className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-900">
+                <div key={index} className="bg-white rounded-lg shadow-md p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900">
                       {call.executive || 'Unknown Agent'}
-                    </h3>
+                      </h3>
                     <p className="text-gray-600">Customer: {call.customer || 'N/A'}</p>
                     <p className="text-sm text-gray-500">Call ID: {call.callid}</p>
-                  </div>
-                  <div className="text-right">
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    </div>
+                    <div className="text-right">
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                       call.status === 'Call Complete'
-                        ? 'bg-green-100 text-green-800'
+                          ? 'bg-green-100 text-green-800'
                         : call.status === 'Customer Busy'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
                       {call.status || 'Unknown'}
-                    </span>
+                      </span>
+                    </div>
                   </div>
-                </div>
-                <div className="grid md:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Call Details</h4>
-                    <div className="space-y-1 text-sm text-gray-600">
+                  <div className="grid md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-2">Call Details</h4>
+                      <div className="space-y-1 text-sm text-gray-600">
                       <p><strong>Start Time:</strong> {call.starttime}</p>
                       <p><strong>End Time:</strong> {call.endtime}</p>
                       <p><strong>Duration:</strong> {formatDuration(Number(call.duration))}</p>
@@ -128,10 +128,10 @@ export default function CallRecordingsPanel() {
                       <p><strong>Received At:</strong> {call.receivedAt ? new Date(call.receivedAt.seconds * 1000).toLocaleString() : 'N/A'}</p>
                     </div>
                   </div>
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Recording</h4>
-                    <div className="space-y-2">
-                      <p className="text-sm text-gray-600 break-all">
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-2">Recording</h4>
+                      <div className="space-y-2">
+                        <p className="text-sm text-gray-600 break-all">
                         <strong>URL:</strong> {call.filename || 'No recording URL'}
                       </p>
                       {call.filename && (
@@ -161,7 +161,7 @@ export default function CallRecordingsPanel() {
                               <p><strong>Customer Tone:</strong> {toneIcon(call.analysis.customerTone)} {call.analysis.customerTone}</p>
                               <p><strong>Recommendation:</strong> {call.analysis.recommendation}</p>
                               <p><strong>Follow Up Suggestion:</strong> {call.analysis.followUpSuggestion}</p>
-                              <button
+                            <button
                                 className="mt-2 px-3 py-1 bg-blue-200 text-blue-900 rounded text-xs hover:bg-blue-300"
                                 onClick={() => {
                                   const text = `Summary: ${call.analysis.summary}\nPitch Score: ${call.analysis.pitchScore}/10\nMistakes: ${Array.isArray(call.analysis.mistakes) ? call.analysis.mistakes.join(', ') : call.analysis.mistakes}\nCustomer Tone: ${call.analysis.customerTone}\nRecommendation: ${call.analysis.recommendation}\nFollow Up Suggestion: ${call.analysis.followUpSuggestion}`;
@@ -177,16 +177,16 @@ export default function CallRecordingsPanel() {
                                 }}
                               >
                                 Download Analysis
-                              </button>
-                            </div>
-                          )}
-                        </div>
+                            </button>
+                          </div>
+                        )}
+                      </div>
                       )}
                     </div>
                   </div>
                 </div>
                 {call.transcript && (
-                  <div className="mt-4 p-3 bg-gray-50 rounded">
+                    <div className="mt-4 p-3 bg-gray-50 rounded">
                     <div className="flex justify-between items-center cursor-pointer" onClick={() => toggleExpand('t' + index)}>
                       <h4 className="font-medium text-gray-900 mb-1">Call Transcript</h4>
                       <span className="text-blue-600 text-xs">{expanded['t' + index] ? 'Hide' : 'Show'}</span>
@@ -221,9 +221,9 @@ export default function CallRecordingsPanel() {
                     >
                       {analyzingId === call.docId ? 'Analyzing...' : 'Analyze Call'}
                     </button>
-                  </div>
-                )}
-              </div>
+                    </div>
+                  )}
+                </div>
             ))}
           </div>
         )}
