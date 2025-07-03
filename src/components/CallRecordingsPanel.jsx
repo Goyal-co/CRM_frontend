@@ -1,9 +1,29 @@
 import { useState, useEffect } from 'react';
 
+const toneIcon = (tone) => {
+  if (!tone) return '';
+  const t = tone.toLowerCase();
+  if (t.includes('interested')) return '😊';
+  if (t.includes('neutral')) return '😐';
+  if (t.includes('rude') || t.includes('angry')) return '😠';
+  if (t.includes('unconvinced')) return '🤔';
+  if (t.includes('happy')) return '😃';
+  if (t.includes('sad')) return '😢';
+  return '🗣️';
+};
+
+const formatDuration = (seconds) => {
+  if (!seconds || isNaN(seconds)) return 'N/A';
+  const min = Math.floor(seconds / 60);
+  const sec = seconds % 60;
+  return `${min}m ${sec}s`;
+};
+
 export default function CallRecordingsPanel() {
   const [calls, setCalls] = useState([]);
   const [loading, setLoading] = useState(true);
   const [analyzingId, setAnalyzingId] = useState(null);
+  const [expanded, setExpanded] = useState({});
 
   useEffect(() => {
     fetchCalls();
@@ -39,10 +59,25 @@ export default function CallRecordingsPanel() {
     }
   };
 
+  const toggleExpand = (idx) => {
+    setExpanded((prev) => ({ ...prev, [idx]: !prev[idx] }));
+  };
+
   if (loading) {
+    // Simple skeleton loader
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-500">Loading call recordings...</div>
+        <div className="space-y-4 w-full max-w-2xl">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="bg-white rounded-lg shadow-md p-6 animate-pulse">
+              <div className="h-6 bg-gray-200 rounded w-1/3 mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-2/3 mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -88,8 +123,8 @@ export default function CallRecordingsPanel() {
                     <div className="space-y-1 text-sm text-gray-600">
                       <p><strong>Start Time:</strong> {call.starttime}</p>
                       <p><strong>End Time:</strong> {call.endtime}</p>
-                      <p><strong>Duration:</strong> {call.duration || 'N/A'} seconds</p>
-                      <p><strong>Answered Time:</strong> {call.answeredtime || 'N/A'} seconds</p>
+                      <p><strong>Duration:</strong> {formatDuration(Number(call.duration))}</p>
+                      <p><strong>Answered Time:</strong> {formatDuration(Number(call.answeredtime))}</p>
                       <p><strong>Received At:</strong> {call.receivedAt ? new Date(call.receivedAt.seconds * 1000).toLocaleString() : 'N/A'}</p>
                     </div>
                   </div>
@@ -104,15 +139,47 @@ export default function CallRecordingsPanel() {
                       )}
                       {call.analysis && (
                         <div className="mt-4 p-3 bg-gray-50 rounded">
-                          <h4 className="font-medium text-gray-900 mb-1">AI Analysis</h4>
-                          <div className="space-y-1 text-sm text-gray-600">
-                            <p><strong>Summary:</strong> {call.analysis.summary}</p>
-                            <p><strong>Pitch Score:</strong> {call.analysis.pitchScore}/10</p>
-                            <p><strong>Mistakes:</strong> {Array.isArray(call.analysis.mistakes) ? call.analysis.mistakes.join(', ') : call.analysis.mistakes}</p>
-                            <p><strong>Customer Tone:</strong> {call.analysis.customerTone}</p>
-                            <p><strong>Recommendation:</strong> {call.analysis.recommendation}</p>
-                            <p><strong>Follow Up Suggestion:</strong> {call.analysis.followUpSuggestion}</p>
+                          <div className="flex justify-between items-center cursor-pointer" onClick={() => toggleExpand(index)}>
+                            <h4 className="font-medium text-gray-900 mb-1">AI Analysis</h4>
+                            <span className="text-blue-600 text-xs">{expanded[index] ? 'Hide' : 'Show'}</span>
                           </div>
+                          {expanded[index] && (
+                            <div className="space-y-1 text-sm text-gray-600">
+                              <p><strong>Summary:</strong> {call.analysis.summary}</p>
+                              <p>
+                                <strong>Pitch Score:</strong>{' '}
+                                <span style={{
+                                  color:
+                                    call.analysis.pitchScore >= 7 ? 'green' :
+                                    call.analysis.pitchScore <= 4 ? 'red' : 'orange',
+                                  fontWeight: 'bold'
+                                }}>
+                                  {call.analysis.pitchScore}/10
+                                </span>
+                              </p>
+                              <p><strong>Mistakes:</strong> {Array.isArray(call.analysis.mistakes) ? call.analysis.mistakes.join(', ') : call.analysis.mistakes}</p>
+                              <p><strong>Customer Tone:</strong> {toneIcon(call.analysis.customerTone)} {call.analysis.customerTone}</p>
+                              <p><strong>Recommendation:</strong> {call.analysis.recommendation}</p>
+                              <p><strong>Follow Up Suggestion:</strong> {call.analysis.followUpSuggestion}</p>
+                              <button
+                                className="mt-2 px-3 py-1 bg-blue-200 text-blue-900 rounded text-xs hover:bg-blue-300"
+                                onClick={() => {
+                                  const text = `Summary: ${call.analysis.summary}\nPitch Score: ${call.analysis.pitchScore}/10\nMistakes: ${Array.isArray(call.analysis.mistakes) ? call.analysis.mistakes.join(', ') : call.analysis.mistakes}\nCustomer Tone: ${call.analysis.customerTone}\nRecommendation: ${call.analysis.recommendation}\nFollow Up Suggestion: ${call.analysis.followUpSuggestion}`;
+                                  const blob = new Blob([text], { type: 'text/plain' });
+                                  const url = URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  a.download = `call-analysis-${call.callid}.txt`;
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  document.body.removeChild(a);
+                                  URL.revokeObjectURL(url);
+                                }}
+                              >
+                                Download Analysis
+                              </button>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -120,8 +187,29 @@ export default function CallRecordingsPanel() {
                 </div>
                 {call.transcript && (
                   <div className="mt-4 p-3 bg-gray-50 rounded">
-                    <h4 className="font-medium text-gray-900 mb-1">Call Transcript</h4>
-                    <p className="text-sm text-gray-600 whitespace-pre-line">{call.transcript}</p>
+                    <div className="flex justify-between items-center cursor-pointer" onClick={() => toggleExpand('t' + index)}>
+                      <h4 className="font-medium text-gray-900 mb-1">Call Transcript</h4>
+                      <span className="text-blue-600 text-xs">{expanded['t' + index] ? 'Hide' : 'Show'}</span>
+                    </div>
+                    {expanded['t' + index] && (
+                      <p className="text-sm text-gray-600 whitespace-pre-line">{call.transcript}</p>
+                    )}
+                    <button
+                      className="mt-2 px-3 py-1 bg-blue-200 text-blue-900 rounded text-xs hover:bg-blue-300"
+                      onClick={() => {
+                        const blob = new Blob([call.transcript], { type: 'text/plain' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `call-transcript-${call.callid}.txt`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                      }}
+                    >
+                      Download Transcript
+                    </button>
                   </div>
                 )}
                 {(!call.transcript || !call.analysis) && (
