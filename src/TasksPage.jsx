@@ -4,7 +4,7 @@ export default function TasksPage({ email: propEmail }) {
   const [tasks, setTasks] = useState([]);
   const [newTask, setNewTask] = useState("");
   const email = propEmail || localStorage.getItem("email");
-  const scriptUrl = "https://script.google.com/macros/s/AKfycbwzfrMTurwHJ7BllZuCpMLzrmZC8nOraJ2eEOhY4ZCuWgWn50zZ3A4nwwb-a9tTdAmr/exec";
+  const scriptUrl = "https://script.google.com/macros/s/AKfycbznX9Q-zsf-Trlal1aBSn4WPngHIOeBAycoI8XrmzKUq85aNQ-Mwk0scn86ty-4gsjA/exec";
 
   const fetchTasks = async () => {
     const res = await fetch(`${scriptUrl}?action=getUserTasks&email=${email}`);

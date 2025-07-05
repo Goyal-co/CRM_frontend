@@ -16,7 +16,7 @@ export default function AdminDashboard() {
   const [showBar, setShowBar] = useState(false);
   const [showLine, setShowLine] = useState(false);
   const [showPie, setShowPie] = useState(false);
-  const scriptId = "AKfycbyWzCFNuv-8Ugr-pzD4VJ08-QJ20RxvENe1bocm2Ya_2A02lrxH_WvmWddKqB_P8Ccm";
+  const scriptId = "AKfycbznX9Q-zsf-Trlal1aBSn4WPngHIOeBAycoI8XrmzKUq85aNQ-Mwk0scn86ty-4gsjA";
   const pieColors = ["#ef4444", "#facc15", "#3b82f6"];
 
   const handleFilterChange = (key, value) => setFilters(prev => ({ ...prev, [key]: value }));

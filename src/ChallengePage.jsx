@@ -9,7 +9,7 @@ export default function ChallengePage() {
     const fetchChallenge = async () => {
       try {
         const res = await fetch(
-          `https://script.google.com/macros/s/AKfycbwzfrMTurwHJ7BllZuCpMLzrmZC8nOraJ2eEOhY4ZCuWgWn50zZ3A4nwwb-a9tTdAmr/exec?action=getMonthlyChallenge&email=${email}`
+          `https://script.google.com/macros/s/AKfycbznX9Q-zsf-Trlal1aBSn4WPngHIOeBAycoI8XrmzKUq85aNQ-Mwk0scn86ty-4gsjA/exec?action=getMonthlyChallenge&email=${email}`
         );
         const result = await res.json();
         setData(result);

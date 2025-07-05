@@ -18,7 +18,7 @@ export default function HomeDashboard({ email: propEmail }) {
     }
 
     // ✅ Fetch daily tip
-    fetch("https://script.google.com/macros/s/AKfycbwzfrMTurwHJ7BllZuCpMLzrmZC8nOraJ2eEOhY4ZCuWgWn50zZ3A4nwwb-a9tTdAmr/exec?action=getDailyTip")
+    fetch("https://script.google.com/macros/s/AKfycbznX9Q-zsf-Trlal1aBSn4WPngHIOeBAycoI8XrmzKUq85aNQ-Mwk0scn86ty-4gsjA/exec?action=getDailyTip")
       .then(res => res.json())
       .then(data => setDailyTip(data.tip || "No tip available today."))
       .catch(err => {
