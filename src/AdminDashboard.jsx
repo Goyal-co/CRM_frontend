@@ -99,7 +99,10 @@ export default function AdminDashboard() {
         <select onChange={e => handleFilterChange("project", e.target.value)} className="p-2 border rounded w-48">
           <option value="">All Projects</option>
           <option value="Orchid Life">Orchid Life</option>
-          <option value="Salisbury">Salisbury</option>
+          <option value="Orchid Salisbury">Salisbury</option>
+          <option value="Orchid Bloomsberry">Orchid Bloomsberry</option>
+          <option value="Orchid Platinum">Orchid Platinum</option>
+          <option value="RIVIERA UNO" && "Riviera Uno">Rivirea Uno</option>
         </select>
         <select onChange={e => handleFilterChange("member", e.target.value)} className="p-2 border rounded w-48">
           <option value="">All Members</option>
