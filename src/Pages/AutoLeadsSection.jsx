@@ -217,13 +217,50 @@ export default function AutoLeadsSection({ email }) {
   };
 
   const filteredLeads = leads.filter(lead => {
-    const matchProject = filters.project ? lead["Project"] === filters.project : true;
+    // Define main project list (normalized to lowercase for comparison)
+    const mainProjects = [
+      'orchid life',
+      'orchid salisbury', 
+      'orchid bloomsberry',
+      'orchid platinum',
+      'riviera uno'
+    ];
+    
+    // Normalize the lead's project name for comparison
+    const normalizedLeadProject = (lead["Project"] || '').toLowerCase().trim();
+    
+    // Handle "Other" project filter
+    let matchProject = true;
+    if (filters.project) {
+      if (filters.project === 'Other') {
+        // Show leads from projects NOT in the main list
+        matchProject = !mainProjects.includes(normalizedLeadProject);
+      } else {
+        // Show leads from the specific selected project (case-insensitive)
+        const normalizedFilterProject = filters.project.toLowerCase().trim();
+        matchProject = normalizedLeadProject === normalizedFilterProject;
+      }
+    }
+    
     const matchQuality = filters.quality ? lead["Lead Quality"] === filters.quality : true;
     const matchSource = filters.source ? lead["Source"] === filters.source : true;
     const matchSiteVisit = filters.siteVisit ? lead["Site Visit?"] === filters.siteVisit : true;
     const matchFresh = filters.freshOnly ? !lead["Called?"] : true;
     return matchProject && matchQuality && matchSource && matchSiteVisit && matchFresh;
   });
+
+  // Get unique projects for dropdown, including "Other" if there are non-main projects
+  const allProjects = [...new Set(leads.map(l => l["Project"]))];
+  const mainProjects = [
+    'orchid life',
+    'orchid salisbury', 
+    'orchid bloomsberry',
+    'orchid platinum',
+    'riviera uno'
+  ];
+  const hasOtherProjects = allProjects.some(project => 
+    !mainProjects.includes((project || '').toLowerCase().trim())
+  );
 
   return (
     <div className="flex">
@@ -232,6 +269,7 @@ export default function AutoLeadsSection({ email }) {
         <h3 className="text-lg font-semibold mb-4">Filter Leads</h3>
         <select onChange={e => handleFilterChange("project", e.target.value)} className="w-full mb-3 p-2 border rounded">
           <option value="">All Projects</option>
+          {hasOtherProjects && <option value="Other">Other Projects</option>}
           {[...new Set(leads.map(l => l["Project"]))].map(p => (
             <option key={p}>{p}</option>
           ))}

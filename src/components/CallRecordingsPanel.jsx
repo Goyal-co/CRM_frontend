@@ -290,6 +290,20 @@ export default function CallRecordingsPanel() {
       ? getProjectNameFromLeads(call.customer, leadsData, call.refid)
       : getProjectName(call.formId, call.refid)
   ))];
+  
+  // Define main project list (normalized to lowercase for comparison)
+  const mainProjects = [
+    'orchid life',
+    'orchid salisbury', 
+    'orchid bloomsberry',
+    'orchid platinum',
+    'riviera uno'
+  ];
+  
+  // Check if there are projects outside the main list
+  const hasOtherProjects = uniqueProjects.some(project => 
+    !mainProjects.includes((project || '').toLowerCase().trim())
+  );
 
   // Filter calls based on selected filters
   const filteredCalls = calls.filter(call => {
@@ -298,9 +312,25 @@ export default function CallRecordingsPanel() {
       ? getProjectNameFromLeads(call.customer, leadsData, call.refid)
       : getProjectName(call.formId, call.refid);
     
+    // Normalize the project name for comparison
+    const normalizedProjectName = (projectName || '').toLowerCase().trim();
+    
+    // Handle "Other" project filter
+    let matchProject = true;
+    if (filters.project) {
+      if (filters.project === 'Other') {
+        // Show calls from projects NOT in the main list
+        matchProject = !mainProjects.includes(normalizedProjectName);
+      } else {
+        // Show calls from the specific selected project (case-insensitive)
+        const normalizedFilterProject = filters.project.toLowerCase().trim();
+        matchProject = normalizedProjectName === normalizedFilterProject;
+      }
+    }
+    
     return (
       (!filters.agent || agentName === filters.agent) &&
-      (!filters.project || projectName === filters.project) &&
+      matchProject &&
       (!filters.status || call.status === filters.status)
     );
   });
@@ -354,6 +384,9 @@ export default function CallRecordingsPanel() {
                 {uniqueProjects.map(project => (
                   <option key={project} value={project}>{project}</option>
                 ))}
+                {hasOtherProjects && (
+                  <option value="Other">Other</option>
+                )}
               </select>
             </div>
             <div>

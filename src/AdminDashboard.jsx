@@ -19,7 +19,32 @@ export default function AdminDashboard() {
   const scriptId = "AKfycbznX9Q-zsf-Trlal1aBSn4WPngHIOeBAycoI8XrmzKUq85aNQ-Mwk0scn86ty-4gsjA";
   const pieColors = ["#ef4444", "#facc15", "#3b82f6"];
 
-  const handleFilterChange = (key, value) => setFilters(prev => ({ ...prev, [key]: value }));
+  const handleFilterChange = (key, value) => {
+    // Normalize project names for backend API calls
+    if (key === "project" && value) {
+      const normalizedValue = value.toLowerCase().trim();
+      setFilters(prev => ({ ...prev, [key]: normalizedValue }));
+    } else {
+      setFilters(prev => ({ ...prev, [key]: value }));
+    }
+  };
+
+  // Get all unique projects from teamStats data
+  const allProjects = [...new Set(teamStats.map(stat => stat.project).filter(Boolean))];
+  
+  // Define main project list (normalized to lowercase for comparison)
+  const mainProjects = [
+    'orchid life',
+    'orchid salisbury', 
+    'orchid bloomsberry',
+    'orchid platinum',
+    'riviera uno'
+  ];
+  
+  // Check if there are projects outside the main list
+  const hasOtherProjects = allProjects.some(project => 
+    !mainProjects.includes((project || '').toLowerCase().trim())
+  );
 
   useEffect(() => {
     const fetchAdminStats = async () => {
@@ -98,11 +123,10 @@ export default function AdminDashboard() {
       <div className="flex flex-wrap gap-4 mb-6 justify-center">
         <select onChange={e => handleFilterChange("project", e.target.value)} className="p-2 border rounded w-48">
           <option value="">All Projects</option>
-          <option value="Orchid Life">Orchid Life</option>
-          <option value="Orchid Salisbury">Salisbury</option>
-          <option value="Orchid Bloomsberry">Orchid Bloomsberry</option>
-          <option value="Orchid Platinum">Orchid Platinum</option>
-          <option value="RIVIERA UNO" && "Riviera Uno">Rivirea Uno</option>
+          {allProjects.map(project => (
+            <option key={project} value={project}>{project}</option>
+          ))}
+          {hasOtherProjects && <option value="Other">Other Projects</option>}
         </select>
         <select onChange={e => handleFilterChange("member", e.target.value)} className="p-2 border rounded w-48">
           <option value="">All Members</option>
