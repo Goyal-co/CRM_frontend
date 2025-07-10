@@ -15,9 +15,10 @@ export default function AutoLeadsSection({ email }) {
 
   const phoneBook = {
     "pratham.bng2002@gmail.com": "+919686602879",
-    "srinivas@goyalco.com": "+919999999999",
-    "sahil.bng@goyalco.com": "+917777777777",
     "avularudrasekharreddy@gmail.com": "+919014600977",
+    "Presales6.bng@gmail.com": "+918147701373",
+    "Presales5.bng@gmail.com": "+918147701375",
+    "Presales8.bng@gmail.com": "+918971103745",
     "skillnoha.lms@gmail.com": "+919014600977",
   };
 
