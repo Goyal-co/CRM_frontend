@@ -162,13 +162,23 @@ export default function AdminDashboard() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <SummaryCard title="Auto Leads" value={autoLeadsCount} color="bg-blue-400" />
-        <SummaryCard title="Manual Leads" value={manualLeadsCount} color="bg-blue-600" />
-        <SummaryCard title="Total Leads" value={totalLeadsCount} color="bg-blue-800" />
+        <SummaryCard
+          title="Total Leads"
+          value={teamStats.reduce((sum, m) => sum + (m.leads || 0), 0)}
+          color="bg-blue-800"
+        />
+        <SummaryCard
+          title="Site Visits"
+          value={teamStats.reduce((sum, m) => sum + (m.siteVisits || 0), 0)}
+          color="bg-green-500"
+        />
+        <SummaryCard
+          title="Bookings"
+          value={teamStats.reduce((sum, m) => sum + (m.bookings || 0), 0)}
+          color="bg-purple-500"
+        />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <SummaryCard title="Site Visits" value={siteVisitsCount} color="bg-green-500" />
-        <SummaryCard title="Bookings" value={bookingsCount} color="bg-purple-500" />
         <SummaryCard title="Conversion %" value={conversionPercent + '%'} color="bg-indigo-500" />
       </div>
 
