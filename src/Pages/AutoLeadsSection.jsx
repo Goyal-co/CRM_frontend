@@ -282,7 +282,7 @@ export default function AutoLeadsSection({ email }) {
         </select>
         <select onChange={e => handleFilterChange("quality", e.target.value)} className="w-full mb-3 p-2 border rounded">
           <option value="">Lead Quality</option>
-          <option value="Hot">Hot</option>
+          <option value="WIP">WIP</option>
           <option value="Warm">Warm</option>
           <option value="Cold">Cold</option>
         </select>
@@ -307,7 +307,7 @@ export default function AutoLeadsSection({ email }) {
       <div className="w-3/4 p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
         {filteredLeads.map((lead, index) => {
           const isExpanded = expandedIndex === index;
-          const qualityColor = lead["Lead Quality"] === "Hot"
+          const qualityColor = lead["Lead Quality"] === "WIP"
             ? "bg-red-500"
             : lead["Lead Quality"] === "Warm"
             ? "bg-yellow-400"
@@ -359,7 +359,7 @@ export default function AutoLeadsSection({ email }) {
                     </select>
                     <select value={lead["Lead Quality"] || ""} onChange={(e) => handleInputChange(index, "Lead Quality", e.target.value)} className="p-2 border rounded">
                       <option value="">Quality</option>
-                      <option value="Hot">Hot</option>
+                      <option value="WIP">WIP</option>
                       <option value="Warm">Warm</option>
                       <option value="Cold">Cold</option>
                     </select>

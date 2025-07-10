@@ -10,7 +10,11 @@ export default function ManualLeads() {
     lookingFor: "",
     siteVisit: "",
     booked: "",
-    feedback: "",
+    feedback1: "",
+    feedback2: "",
+    feedback3: "",
+    feedback4: "",
+    feedback5: "",
   });
 
   const scriptUrl = `https://script.google.com/macros/s/AKfycbznX9Q-zsf-Trlal1aBSn4WPngHIOeBAycoI8XrmzKUq85aNQ-Mwk0scn86ty-4gsjA/exec`;
@@ -48,7 +52,11 @@ export default function ManualLeads() {
       lookingFor: "",
       siteVisit: "",
       booked: "",
-      feedback: "",
+      feedback1: "",
+      feedback2: "",
+      feedback3: "",
+      feedback4: "",
+      feedback5: "",
     });
     fetchManualLeads(); // reload list
   };
@@ -62,13 +70,18 @@ export default function ManualLeads() {
       <h3 className="text-lg font-semibold mb-4">Add New Manual Lead</h3>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <input
-          type="text"
-          placeholder="Project"
+        <select
           value={newLead.project}
           onChange={(e) => handleInputChange("project", e.target.value)}
           className="border rounded px-3 py-2"
-        />
+        >
+          <option value="">Select Project</option>
+          <option value="Orchid Life">Orchid Life</option>
+          <option value="Orchid Salisbury">Orchid Salisbury</option>
+          <option value="Orchid Bloomsberry">Orchid Bloomsberry</option>
+          <option value="Orchid Platinum">Orchid Platinum</option>
+          <option value="Riviera Uno">Riviera Uno</option>
+        </select>
         <input
           type="text"
           placeholder="Name"
@@ -110,9 +123,37 @@ export default function ManualLeads() {
         </select>
         <input
           type="text"
-          placeholder="Feedback"
-          value={newLead.feedback}
-          onChange={(e) => handleInputChange("feedback", e.target.value)}
+          placeholder="Feedback 1"
+          value={newLead.feedback1}
+          onChange={(e) => handleInputChange("feedback1", e.target.value)}
+          className="border rounded px-3 py-2 col-span-1 sm:col-span-2"
+        />
+        <input
+          type="text"
+          placeholder="Feedback 2"
+          value={newLead.feedback2}
+          onChange={(e) => handleInputChange("feedback2", e.target.value)}
+          className="border rounded px-3 py-2 col-span-1 sm:col-span-2"
+        />
+        <input
+          type="text"
+          placeholder="Feedback 3"
+          value={newLead.feedback3}
+          onChange={(e) => handleInputChange("feedback3", e.target.value)}
+          className="border rounded px-3 py-2 col-span-1 sm:col-span-2"
+        />
+        <input
+          type="text"
+          placeholder="Feedback 4"
+          value={newLead.feedback4}
+          onChange={(e) => handleInputChange("feedback4", e.target.value)}
+          className="border rounded px-3 py-2 col-span-1 sm:col-span-2"
+        />
+        <input
+          type="text"
+          placeholder="Feedback 5"
+          value={newLead.feedback5}
+          onChange={(e) => handleInputChange("feedback5", e.target.value)}
           className="border rounded px-3 py-2 col-span-1 sm:col-span-2"
         />
         <button
@@ -138,7 +179,11 @@ export default function ManualLeads() {
               <th className="p-2">Assignee</th>
               <th className="p-2">Site Visit?</th>
               <th className="p-2">Booked?</th>
-              <th className="p-2">Feedback</th>
+              <th className="p-2">Feedback 1</th>
+              <th className="p-2">Feedback 2</th>
+              <th className="p-2">Feedback 3</th>
+              <th className="p-2">Feedback 4</th>
+              <th className="p-2">Feedback 5</th>
             </tr>
           </thead>
           <tbody>
@@ -152,7 +197,11 @@ export default function ManualLeads() {
                 <td className="p-2">{lead["Assignee"]}</td>
                 <td className="p-2">{lead["Site Visit?"]}</td>
                 <td className="p-2">{lead["Booked?"]}</td>
-                <td className="p-2">{lead["Feedback"]}</td>
+                <td className="p-2">{lead["Feedback 1"]}</td>
+                <td className="p-2">{lead["Feedback 2"]}</td>
+                <td className="p-2">{lead["Feedback 3"]}</td>
+                <td className="p-2">{lead["Feedback 4"]}</td>
+                <td className="p-2">{lead["Feedback 5"]}</td>
               </tr>
             ))}
           </tbody>

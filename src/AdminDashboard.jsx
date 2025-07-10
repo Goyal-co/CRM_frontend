@@ -18,6 +18,8 @@ export default function AdminDashboard() {
   const [showPie, setShowPie] = useState(false);
   const scriptId = "AKfycbznX9Q-zsf-Trlal1aBSn4WPngHIOeBAycoI8XrmzKUq85aNQ-Mwk0scn86ty-4gsjA";
   const pieColors = ["#ef4444", "#facc15", "#3b82f6"];
+  const [autoLeads, setAutoLeads] = useState([]);
+  const [manualLeads, setManualLeads] = useState([]);
 
   const handleFilterChange = (key, value) => {
     // Normalize project names for backend API calls
@@ -81,6 +83,24 @@ export default function AdminDashboard() {
     fetchTeamStatus();
   }, []);
 
+  useEffect(() => {
+    // Fetch auto leads
+    fetch("https://script.google.com/macros/s/AKfycbznX9Q-zsf-Trlal1aBSn4WPngHIOeBAycoI8XrmzKUq85aNQ-Mwk0scn86ty-4gsjA/exec?action=getLeads")
+      .then(res => res.json())
+      .then(data => setAutoLeads(Array.isArray(data) ? data : []));
+    // Fetch manual leads
+    fetch("https://script.google.com/macros/s/AKfycbznX9Q-zsf-Trlal1aBSn4WPngHIOeBAycoI8XrmzKUq85aNQ-Mwk0scn86ty-4gsjA/exec?action=getManualLeads")
+      .then(res => res.json())
+      .then(data => setManualLeads(Array.isArray(data) ? data : []));
+  }, []);
+
+  const autoLeadsCount = autoLeads.length;
+  const manualLeadsCount = manualLeads.length;
+  const totalLeadsCount = autoLeadsCount + manualLeadsCount;
+  const siteVisitsCount = autoLeads.filter(l => l["Site Visit?"] === "Yes").length + manualLeads.filter(l => l["Site Visit?"] === "Yes").length;
+  const bookingsCount = autoLeads.filter(l => l["Booked?"] === "Yes").length + manualLeads.filter(l => l["Booked?"] === "Yes").length;
+  const conversionPercent = totalLeadsCount > 0 ? ((bookingsCount / totalLeadsCount) * 100).toFixed(1) : "0.0";
+
   const toggleStatus = async (email, index) => {
     const current = teamStatus[index].Status;
     const newStatus = current === "Active" ? "Leave" : "Active";
@@ -141,18 +161,15 @@ export default function AdminDashboard() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-        <SummaryCard title="Total Leads" value={teamStats.reduce((sum, m) => sum + m.leads, 0)} color="bg-blue-500" />
-        <SummaryCard title="Site Visits" value={teamStats.reduce((sum, m) => sum + m.siteVisits, 0)} color="bg-green-500" />
-        <SummaryCard title="Bookings" value={teamStats.reduce((sum, m) => sum + m.bookings, 0)} color="bg-purple-500" />
-        <SummaryCard title="Call Delay" value={teamStats.reduce((sum, m) => sum + (m.callDelay || 0), 0)} color="bg-yellow-500" />
-        <SummaryCard
-          title="Conversion %"
-          value={teamStats.length > 0
-            ? ((teamStats.reduce((sum, m) => sum + m.bookings, 0) / teamStats.reduce((sum, m) => sum + m.leads, 1)) * 100).toFixed(1) + "%"
-            : "0%"}
-          color="bg-indigo-500"
-        />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <SummaryCard title="Auto Leads" value={autoLeadsCount} color="bg-blue-400" />
+        <SummaryCard title="Manual Leads" value={manualLeadsCount} color="bg-blue-600" />
+        <SummaryCard title="Total Leads" value={totalLeadsCount} color="bg-blue-800" />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <SummaryCard title="Site Visits" value={siteVisitsCount} color="bg-green-500" />
+        <SummaryCard title="Bookings" value={bookingsCount} color="bg-purple-500" />
+        <SummaryCard title="Conversion %" value={conversionPercent + '%'} color="bg-indigo-500" />
       </div>
 
       {/* Leaderboard Table */}
@@ -168,11 +185,25 @@ export default function AdminDashboard() {
               <th className="p-2">Bookings</th>
               <th className="p-2">Call Delays</th>
               <th className="p-2">Conversion %</th>
+              <th className="p-2">WIP (Auto)</th>
+              <th className="p-2">WIP (Manual)</th>
+              <th className="p-2">Warm (Auto)</th>
+              <th className="p-2">Warm (Manual)</th>
+              <th className="p-2">Cold (Auto)</th>
+              <th className="p-2">Cold (Manual)</th>
             </tr>
           </thead>
           <tbody>
             {teamStats.map((t, i) => {
               const conversion = t.bookings && t.leads ? ((t.bookings / t.leads) * 100).toFixed(1) + "%" : "0%";
+              const agentAutoLeads = autoLeads.filter(l => l["Assignee"] === t.name);
+              const agentManualLeads = manualLeads.filter(l => l["Assignee"] === t.name);
+              const wipAutoCount = agentAutoLeads.filter(l => l["Lead Quality"] === "WIP").length;
+              const wipManualCount = agentManualLeads.filter(l => l["Lead Quality"] === "WIP").length;
+              const warmAutoCount = agentAutoLeads.filter(l => l["Lead Quality"] === "Warm").length;
+              const warmManualCount = agentManualLeads.filter(l => l["Lead Quality"] === "Warm").length;
+              const coldAutoCount = agentAutoLeads.filter(l => l["Lead Quality"] === "Cold").length;
+              const coldManualCount = agentManualLeads.filter(l => l["Lead Quality"] === "Cold").length;
               return (
                 <tr key={i} className="border-t hover:bg-gray-50">
                   <td className="p-2">{t.name}</td>
@@ -182,6 +213,12 @@ export default function AdminDashboard() {
                   <td className="p-2 text-center">{t.bookings}</td>
                   <td className="p-2 text-center">{t.callDelay || 0}</td>
                   <td className="p-2 text-center">{conversion}</td>
+                  <td className="p-2 text-center">{wipAutoCount}</td>
+                  <td className="p-2 text-center">{wipManualCount}</td>
+                  <td className="p-2 text-center">{warmAutoCount}</td>
+                  <td className="p-2 text-center">{warmManualCount}</td>
+                  <td className="p-2 text-center">{coldAutoCount}</td>
+                  <td className="p-2 text-center">{coldManualCount}</td>
                 </tr>
               );
             })}
