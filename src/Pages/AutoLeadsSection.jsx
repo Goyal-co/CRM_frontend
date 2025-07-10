@@ -17,8 +17,11 @@ export default function AutoLeadsSection({ email }) {
     "pratham.bng2002@gmail.com": "+919686602879",
     "avularudrasekharreddy@gmail.com": "+919014600977",
     "Presales6.bng@gmail.com": "+918147701373",
+    "presales6.bng@gmail.com": "+918147701373",
     "Presales5.bng@gmail.com": "+918147701375",
+    "presales5.bng@gmail.com": "+918147701375",
     "Presales8.bng@gmail.com": "+918971103745",
+    "presales8.bng@gmail.com": "+918971103745",
     "skillnoha.lms@gmail.com": "+919014600977",
   };
 
