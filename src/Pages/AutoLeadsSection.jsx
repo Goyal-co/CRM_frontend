@@ -72,13 +72,15 @@ export default function AutoLeadsSection({ email }) {
     const leadId = lead["Lead ID"];
 
     // Ensure customer number is in +91 format
-    if (!/^\+91\d{10}$/.test(customerNumber)) {
-      if (/^\d{10}$/.test(customerNumber)) {
-        customerNumber = "+91" + customerNumber;
-      } else {
-        alert("Customer phone number must be in +91XXXXXXXXXX or 10 digit format. Current: " + customerNumber);
-        return;
-      }
+    if (!/^(\+91\d{10}|91\d{10}|\d{10})$/.test(customerNumber)) {
+      alert("Customer phone number must be in +91XXXXXXXXXX, 91XXXXXXXXXX, or 10 digit format. Current: " + customerNumber);
+      return;
+    }
+    // Add + if missing
+    if (/^91\d{10}$/.test(customerNumber)) {
+      customerNumber = "+" + customerNumber;
+    } else if (/^\d{10}$/.test(customerNumber)) {
+      customerNumber = "+91" + customerNumber;
     }
 
     try {
