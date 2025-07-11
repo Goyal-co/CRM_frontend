@@ -11,7 +11,12 @@ export default function ManualLeadsSection({ email }) {
     lookingFor: "",
     siteVisit: "",
     booked: "",
-    feedback: "",
+    feedback1: "",
+    feedback2: "",
+    feedback3: "",
+    feedback4: "",
+    feedback5: "",
+    leadQuality: "", // Add leadQuality to newLead state
   });
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -51,6 +56,7 @@ export default function ManualLeadsSection({ email }) {
       leadId,
       email,
       ...newLead,
+      "Lead Quality": newLead.leadQuality,
     });
 
     await fetch(`${scriptUrl}?${params.toString()}`);
@@ -61,7 +67,12 @@ export default function ManualLeadsSection({ email }) {
       lookingFor: "",
       siteVisit: "",
       booked: "",
-      feedback: "",
+      feedback1: "",
+      feedback2: "",
+      feedback3: "",
+      feedback4: "",
+      feedback5: "",
+      leadQuality: "",
     });
     setCurrentPage(1);
     fetchManualLeads();
@@ -79,20 +90,27 @@ export default function ManualLeadsSection({ email }) {
 
   const handleUpdate = async (leadId) => {
     const fields = editedValues[leadId];
-    for (const [field, value] of Object.entries({
+    const updateFields = {
       "Site Visit?": fields.siteVisit,
       "Booked?": fields.booked,
-      "Feedback": fields.feedback,
-    })) {
-      const params = new URLSearchParams({
-        action: "updateManualLead",
-        leadId,
-        field,
-        value,
-      });
-      await fetch(`${scriptUrl}?${params}`);
+      "Lead Quality": fields.leadQuality,
+      "Feedback 1": fields.feedback1,
+      "Feedback 2": fields.feedback2,
+      "Feedback 3": fields.feedback3,
+      "Feedback 4": fields.feedback4,
+      "Feedback 5": fields.feedback5,
+    };
+    for (const [field, value] of Object.entries(updateFields)) {
+      if (typeof value !== "undefined") {
+        const params = new URLSearchParams({
+          action: "updateManualLead",
+          leadId,
+          field,
+          value,
+        });
+        await fetch(`${scriptUrl}?${params}`);
+      }
     }
-
     setSuccessMessage("Lead updated successfully!");
     fetchManualLeads();
     setTimeout(() => setSuccessMessage(""), 3000);
@@ -107,6 +125,14 @@ export default function ManualLeadsSection({ email }) {
   const indexOfFirstLead = indexOfLastLead - leadsPerPage;
   const currentLeads = sortedLeads.slice(indexOfFirstLead, indexOfLastLead);
   const totalPages = Math.ceil(leads.length / leadsPerPage);
+
+  // Calculate quality counts
+  const qualityCounts = { WIP: 0, Warm: 0, Cold: 0 };
+  leads.forEach(l => {
+    if (l["Lead Quality"] === "WIP") qualityCounts.WIP++;
+    else if (l["Lead Quality"] === "Warm") qualityCounts.Warm++;
+    else if (l["Lead Quality"] === "Cold") qualityCounts.Cold++;
+  });
 
   return (
     <div className="bg-blue-50 p-6 rounded-xl shadow-sm relative">
@@ -123,6 +149,11 @@ export default function ManualLeadsSection({ email }) {
       {/* Add New Lead Form */}
       <div className="bg-white p-4 rounded-xl shadow mb-6">
         <h3 className="text-xl font-semibold text-blue-900 mb-4">➕ Add New Manual Lead</h3>
+        <div className="flex gap-4 mb-4">
+          <div className="bg-red-100 text-red-700 px-4 py-2 rounded font-bold">WIP: {qualityCounts.WIP}</div>
+          <div className="bg-yellow-100 text-yellow-700 px-4 py-2 rounded font-bold">Warm: {qualityCounts.Warm}</div>
+          <div className="bg-blue-100 text-blue-700 px-4 py-2 rounded font-bold">Cold: {qualityCounts.Cold}</div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <select
             value={newLead.project}
@@ -149,13 +180,14 @@ export default function ManualLeadsSection({ email }) {
             <option value="Yes">Yes</option>
             <option value="No">No</option>
           </select>
+          <select value={newLead.leadQuality} onChange={(e) => handleInputChange("leadQuality", e.target.value)} className="border border-blue-200 rounded px-3 py-2">
+            <option value="">Lead Quality</option>
+            <option value="WIP">WIP</option>
+            <option value="Warm">Warm</option>
+            <option value="Cold">Cold</option>
+          </select>
+          <input type="text" placeholder="Feedback 1" value={newLead.feedback1} onChange={(e) => handleInputChange("feedback1", e.target.value)} className="border border-blue-200 rounded px-3 py-2" />
         </div>
-        <textarea
-          placeholder="Feedback"
-          value={newLead.feedback}
-          onChange={(e) => handleInputChange("feedback", e.target.value)}
-          className="w-full border border-blue-200 rounded px-3 py-2 mb-4"
-        />
         <button onClick={handleSubmit} className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded font-semibold">
           ➕ Add Lead
         </button>
@@ -176,7 +208,12 @@ export default function ManualLeadsSection({ email }) {
               <th className="p-2">Assignee</th>
               <th className="p-2">Site Visit?</th>
               <th className="p-2">Booked?</th>
-              <th className="p-2">Feedback</th>
+              <th className="p-2">Lead Quality</th>
+              <th className="p-2">Feedback 1</th>
+              <th className="p-2">Feedback 2</th>
+              <th className="p-2">Feedback 3</th>
+              <th className="p-2">Feedback 4</th>
+              <th className="p-2">Feedback 5</th>
               <th className="p-2">Action</th>
             </tr>
           </thead>
@@ -196,7 +233,7 @@ export default function ManualLeadsSection({ email }) {
                   <td className="p-2">{lead["Assignee"]}</td>
                   <td className="p-2">
                     {isEditable ? (
-                      <select value={values.siteVisit} onChange={(e) => handleEditInput(id, "siteVisit", e.target.value)} className="border px-2 py-1 rounded">
+                      <select value={values.siteVisit || lead["Site Visit?"]} onChange={(e) => handleEditInput(id, "siteVisit", e.target.value)} className="border px-2 py-1 rounded">
                         <option value="No">No</option>
                         <option value="Yes">Yes</option>
                       </select>
@@ -204,7 +241,7 @@ export default function ManualLeadsSection({ email }) {
                   </td>
                   <td className="p-2">
                     {isEditable ? (
-                      <select value={values.booked} onChange={(e) => handleEditInput(id, "booked", e.target.value)} className="border px-2 py-1 rounded">
+                      <select value={values.booked || lead["Booked?"]} onChange={(e) => handleEditInput(id, "booked", e.target.value)} className="border px-2 py-1 rounded">
                         <option value="No">No</option>
                         <option value="Yes">Yes</option>
                       </select>
@@ -212,8 +249,38 @@ export default function ManualLeadsSection({ email }) {
                   </td>
                   <td className="p-2">
                     {isEditable ? (
-                      <input type="text" value={values.feedback} onChange={(e) => handleEditInput(id, "feedback", e.target.value)} className="border px-2 py-1 rounded w-full" />
-                    ) : lead["Feedback"]}
+                      <select value={values.leadQuality || lead["Lead Quality"] || ""} onChange={(e) => handleEditInput(id, "leadQuality", e.target.value)} className="border px-2 py-1 rounded">
+                        <option value="">Lead Quality</option>
+                        <option value="WIP">WIP</option>
+                        <option value="Warm">Warm</option>
+                        <option value="Cold">Cold</option>
+                      </select>
+                    ) : lead["Lead Quality"]}
+                  </td>
+                  <td className="p-2">
+                    {isEditable ? (
+                      <input type="text" value={values.feedback1 || lead["Feedback 1"] || ""} onChange={(e) => handleEditInput(id, "feedback1", e.target.value)} className="border px-2 py-1 rounded w-full" />
+                    ) : lead["Feedback 1"]}
+                  </td>
+                  <td className="p-2">
+                    {isEditable ? (
+                      <input type="text" value={values.feedback2 || lead["Feedback 2"] || ""} onChange={(e) => handleEditInput(id, "feedback2", e.target.value)} className="border px-2 py-1 rounded w-full" />
+                    ) : lead["Feedback 2"]}
+                  </td>
+                  <td className="p-2">
+                    {isEditable ? (
+                      <input type="text" value={values.feedback3 || lead["Feedback 3"] || ""} onChange={(e) => handleEditInput(id, "feedback3", e.target.value)} className="border px-2 py-1 rounded w-full" />
+                    ) : lead["Feedback 3"]}
+                  </td>
+                  <td className="p-2">
+                    {isEditable ? (
+                      <input type="text" value={values.feedback4 || lead["Feedback 4"] || ""} onChange={(e) => handleEditInput(id, "feedback4", e.target.value)} className="border px-2 py-1 rounded w-full" />
+                    ) : lead["Feedback 4"]}
+                  </td>
+                  <td className="p-2">
+                    {isEditable ? (
+                      <input type="text" value={values.feedback5 || lead["Feedback 5"] || ""} onChange={(e) => handleEditInput(id, "feedback5", e.target.value)} className="border px-2 py-1 rounded w-full" />
+                    ) : lead["Feedback 5"]}
                   </td>
                   <td className="p-2">
                     {isEditable && (

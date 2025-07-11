@@ -37,19 +37,31 @@ export default function LeaderboardPage() {
                   <th className="p-5">Site Visits</th>
                   <th className="p-5">Bookings</th>
                   <th className="p-5">Score</th>
+                  <th className="p-5">WIP</th>
+                  <th className="p-5">Warm</th>
+                  <th className="p-5">Cold</th>
                 </tr>
               </thead>
               <tbody>
-                {data.map((member, index) => (
-                  <tr key={index} className="border-b hover:bg-blue-50 text-gray-800 font-semibold text-lg">
-                    <td className="p-5">{getMedal(index)}</td>
-                    <td className="p-5">{member.name}</td>
-                    <td className="p-5">{member.leads}</td>
-                    <td className="p-5">{member.siteVisits}</td>
-                    <td className="p-5">{member.bookings}</td>
-                    <td className="p-5 text-blue-700 font-bold">{member.score}</td>
-                  </tr>
-                ))}
+                {data.map((member, index) => {
+                  // If the backend provides lead quality counts, use them. Otherwise, set to 0 or calculate if possible.
+                  const wip = member.wip || member.WIP || 0;
+                  const warm = member.warm || member.Warm || 0;
+                  const cold = member.cold || member.Cold || 0;
+                  return (
+                    <tr key={index} className="border-b hover:bg-blue-50 text-gray-800 font-semibold text-lg">
+                      <td className="p-5">{getMedal(index)}</td>
+                      <td className="p-5">{member.name}</td>
+                      <td className="p-5">{member.leads}</td>
+                      <td className="p-5">{member.siteVisits}</td>
+                      <td className="p-5">{member.bookings}</td>
+                      <td className="p-5 text-blue-700 font-bold">{member.score}</td>
+                      <td className="p-5">{wip}</td>
+                      <td className="p-5">{warm}</td>
+                      <td className="p-5">{cold}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

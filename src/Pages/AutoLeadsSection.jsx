@@ -255,6 +255,14 @@ export default function AutoLeadsSection({ email }) {
     return matchProject && matchQuality && matchSource && matchSiteVisit && matchFresh;
   });
 
+  // Calculate quality counts
+  const qualityCounts = { WIP: 0, Warm: 0, Cold: 0 };
+  leads.forEach(l => {
+    if (l["Lead Quality"] === "WIP") qualityCounts.WIP++;
+    else if (l["Lead Quality"] === "Warm") qualityCounts.Warm++;
+    else if (l["Lead Quality"] === "Cold") qualityCounts.Cold++;
+  });
+
   // Get unique projects for dropdown, including "Other" if there are non-main projects
   const allProjects = [...new Set(leads.map(l => l["Project"]))];
   const mainProjects = [
@@ -304,87 +312,93 @@ export default function AutoLeadsSection({ email }) {
       </div>
 
       {/* Lead Cards Section */}
-      <div className="w-3/4 p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filteredLeads.map((lead, index) => {
-          const isExpanded = expandedIndex === index;
-          const qualityColor = lead["Lead Quality"] === "WIP"
-            ? "bg-red-500"
-            : lead["Lead Quality"] === "Warm"
-            ? "bg-yellow-400"
-            : "bg-blue-500";
+      <div className="w-3/4 p-4">
+        <div className="flex gap-4 mb-4">
+          <div className="bg-red-100 text-red-700 px-4 py-2 rounded font-bold">WIP: {qualityCounts.WIP}</div>
+          <div className="bg-yellow-100 text-yellow-700 px-4 py-2 rounded font-bold">Warm: {qualityCounts.Warm}</div>
+          <div className="bg-blue-100 text-blue-700 px-4 py-2 rounded font-bold">Cold: {qualityCounts.Cold}</div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {filteredLeads.map((lead, index) => {
+            const isExpanded = expandedIndex === index;
+            const qualityColor = lead["Lead Quality"] === "WIP"
+              ? "bg-red-500"
+              : lead["Lead Quality"] === "Warm"
+              ? "bg-yellow-400"
+              : "bg-blue-500";
 
-          return (
-            <div key={index} className="bg-white p-4 rounded-xl shadow-md">
-              {/* Card Summary */}
-              <div className="flex justify-between items-center cursor-pointer" onClick={() => setExpandedIndex(isExpanded ? null : index)}>
-                <div>
-                  <h4 className="font-semibold text-lg">{lead["Name"]}</h4>
-                  <p className="text-sm text-gray-500">{lead["Project"]}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className={`text-white text-xs px-2 py-1 rounded ${qualityColor}`}>
-                      {lead["Lead Quality"]}
-                    </span>
-                    <span className="text-xs text-gray-600">{getStatusText(lead)}</span>
+            return (
+              <div key={index} className="bg-white p-4 rounded-xl shadow-md">
+                {/* Card Summary */}
+                <div className="flex justify-between items-center cursor-pointer" onClick={() => setExpandedIndex(isExpanded ? null : index)}>
+                  <div>
+                    <h4 className="font-semibold text-lg">{lead["Name"]}</h4>
+                    <p className="text-sm text-gray-500">{lead["Project"]}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={`text-white text-xs px-2 py-1 rounded ${qualityColor}`}>
+                        {lead["Lead Quality"]}
+                      </span>
+                      <span className="text-xs text-gray-600">{getStatusText(lead)}</span>
+                    </div>
                   </div>
-                </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleCallNow(lead);
-                  }}
-                  className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
-                >
-                  Call Now
-                </button>
-              </div>
-
-              {/* Expanded Inputs */}
-              {isExpanded && (
-                <div className="mt-4 space-y-2 text-sm">
-                  <div className="grid grid-cols-2 gap-2">
-                    <select value={lead["Called?"] || ""} onChange={(e) => handleInputChange(index, "Called?", e.target.value)} className="p-2 border rounded">
-                      <option value="">Called?</option>
-                      <option value="Yes">Yes</option>
-                      <option value="No">No</option>
-                    </select>
-                    <select value={lead["Site Visit?"] || ""} onChange={(e) => handleInputChange(index, "Site Visit?", e.target.value)} className="p-2 border rounded">
-                      <option value="">Site Visit?</option>
-                      <option value="Yes">Yes</option>
-                      <option value="No">No</option>
-                    </select>
-                    <select value={lead["Booked?"] || ""} onChange={(e) => handleInputChange(index, "Booked?", e.target.value)} className="p-2 border rounded">
-                      <option value="">Booked?</option>
-                      <option value="Yes">Yes</option>
-                      <option value="No">No</option>
-                    </select>
-                    <select value={lead["Lead Quality"] || ""} onChange={(e) => handleInputChange(index, "Lead Quality", e.target.value)} className="p-2 border rounded">
-                      <option value="">Quality</option>
-                      <option value="WIP">WIP</option>
-                      <option value="Warm">Warm</option>
-                      <option value="Cold">Cold</option>
-                    </select>
-                  </div>
-                  {[1, 2, 3, 4, 5].map(n => (
-                    <input
-                      key={n}
-                      type="text"
-                      placeholder={`Feedback ${n}`}
-                      value={lead[`Feedback ${n}`] || ""}
-                      onChange={(e) => handleInputChange(index, `Feedback ${n}`, e.target.value)}
-                      className="w-full p-2 border rounded"
-                    />
-                  ))}
                   <button
-                    onClick={() => updateLead(lead)}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCallNow(lead);
+                    }}
+                    className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
                   >
-                    ✅ Update
+                    Call Now
                   </button>
                 </div>
-              )}
-            </div>
-          );
-        })}
+                {/* Expanded Inputs */}
+                {isExpanded && (
+                  <div className="mt-4 space-y-2 text-sm">
+                    <div className="grid grid-cols-2 gap-2">
+                      <select value={lead["Called?"] || ""} onChange={(e) => handleInputChange(index, "Called?", e.target.value)} className="p-2 border rounded">
+                        <option value="">Called?</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                      </select>
+                      <select value={lead["Site Visit?"] || ""} onChange={(e) => handleInputChange(index, "Site Visit?", e.target.value)} className="p-2 border rounded">
+                        <option value="">Site Visit?</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                      </select>
+                      <select value={lead["Booked?"] || ""} onChange={(e) => handleInputChange(index, "Booked?", e.target.value)} className="p-2 border rounded">
+                        <option value="">Booked?</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                      </select>
+                      <select value={lead["Lead Quality"] || ""} onChange={(e) => handleInputChange(index, "Lead Quality", e.target.value)} className="p-2 border rounded">
+                        <option value="">Quality</option>
+                        <option value="WIP">WIP</option>
+                        <option value="Warm">Warm</option>
+                        <option value="Cold">Cold</option>
+                      </select>
+                    </div>
+                    {[1, 2, 3, 4, 5].map(n => (
+                      <input
+                        key={n}
+                        type="text"
+                        placeholder={`Feedback ${n}`}
+                        value={lead[`Feedback ${n}`] || ""}
+                        onChange={(e) => handleInputChange(index, `Feedback ${n}`, e.target.value)}
+                        className="w-full p-2 border rounded"
+                      />
+                    ))}
+                    <button
+                      onClick={() => updateLead(lead)}
+                      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                    >
+                      ✅ Update
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

@@ -11,11 +11,24 @@ export default function UserDashboard({ email, name }) {
     siteVisits: 0,
     bookings: 0,
   });
+  const [qualityCounts, setQualityCounts] = useState({ WIP: 0, Warm: 0, Cold: 0 });
 
   useEffect(() => {
     fetch(`https://script.google.com/macros/s/https://script.google.com/macros/s/AKfycbzeKaQOlSZPIGJbdmFCUmz-dNxGFdHTDPPKeUVg-aACZPYHsl9sVAkkc7Af3Lck8Jz8/exec/exec?email=${email}`)
       .then(res => res.json())
-      .then(data => setStats(data))
+      .then(data => {
+        setStats(data);
+        // Calculate quality counts if data.leads is available
+        if (Array.isArray(data.leads)) {
+          const counts = { WIP: 0, Warm: 0, Cold: 0 };
+          data.leads.forEach(l => {
+            if (l.quality === 'WIP') counts.WIP++;
+            else if (l.quality === 'Warm') counts.Warm++;
+            else if (l.quality === 'Cold') counts.Cold++;
+          });
+          setQualityCounts(counts);
+        }
+      })
       .catch(err => console.error("Failed to fetch stats", err));
   }, [email]);
   
@@ -55,6 +68,11 @@ export default function UserDashboard({ email, name }) {
           <li>Site Visits: {stats.siteVisits}</li>
           <li>Bookings: {stats.bookings}</li>
         </ul>
+        <div style={{ marginTop: '10px', fontWeight: 'bold' }}>
+          <span style={{ marginRight: '20px', color: '#ef4444' }}>WIP: {qualityCounts.WIP}</span>
+          <span style={{ marginRight: '20px', color: '#facc15' }}>Warm: {qualityCounts.Warm}</span>
+          <span style={{ color: '#3b82f6' }}>Cold: {qualityCounts.Cold}</span>
+        </div>
       </div>
 
       <LeadsTable email={email} isAdmin={false} />
