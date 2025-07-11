@@ -65,6 +65,9 @@ export default function ManualLeads() {
     fetchManualLeads();
   }, []);
 
+  // Get all unique project names from leads
+  const allProjects = Array.from(new Set(leads.map(l => l.project || l["Project"]).filter(Boolean))).sort();
+
   return (
     <div>
       <h3 className="text-lg font-semibold mb-4">Add New Manual Lead</h3>

@@ -20,6 +20,7 @@ export default function AdminDashboard() {
   const pieColors = ["#ef4444", "#facc15", "#3b82f6"];
   const [autoLeads, setAutoLeads] = useState([]);
   const [manualLeads, setManualLeads] = useState([]);
+  const [leadsLoading, setLeadsLoading] = useState(true);
 
   const handleFilterChange = (key, value) => {
     // Normalize project names for backend API calls
@@ -85,13 +86,14 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     // Fetch auto leads
-    fetch("https://script.google.com/macros/s/AKfycbznX9Q-zsf-Trlal1aBSn4WPngHIOeBAycoI8XrmzKUq85aNQ-Mwk0scn86ty-4gsjA/exec?action=getLeads")
-      .then(res => res.json())
-      .then(data => setAutoLeads(Array.isArray(data) ? data : []));
-    // Fetch manual leads
-    fetch("https://script.google.com/macros/s/AKfycbznX9Q-zsf-Trlal1aBSn4WPngHIOeBAycoI8XrmzKUq85aNQ-Mwk0scn86ty-4gsjA/exec?action=getManualLeads")
-      .then(res => res.json())
-      .then(data => setManualLeads(Array.isArray(data) ? data : []));
+    Promise.all([
+      fetch("https://script.google.com/macros/s/AKfycbznX9Q-zsf-Trlal1aBSn4WPngHIOeBAycoI8XrmzKUq85aNQ-Mwk0scn86ty-4gsjA/exec?action=getLeads").then(res => res.json()),
+      fetch("https://script.google.com/macros/s/AKfycbznX9Q-zsf-Trlal1aBSn4WPngHIOeBAycoI8XrmzKUq85aNQ-Mwk0scn86ty-4gsjA/exec?action=getManualLeads").then(res => res.json())
+    ]).then(([auto, manual]) => {
+      setAutoLeads(Array.isArray(auto) ? auto : []);
+      setManualLeads(Array.isArray(manual) ? manual : []);
+      setLeadsLoading(false);
+    });
   }, []);
 
   const autoLeadsCount = autoLeads.length;
@@ -162,24 +164,9 @@ export default function AdminDashboard() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <SummaryCard
-          title="Total Leads"
-          value={teamStats.reduce((sum, m) => sum + (m.leads || 0), 0)}
-          color="bg-blue-800"
-        />
-        <SummaryCard
-          title="Site Visits"
-          value={teamStats.reduce((sum, m) => sum + (m.siteVisits || 0), 0)}
-          color="bg-green-500"
-        />
-        <SummaryCard
-          title="Bookings"
-          value={teamStats.reduce((sum, m) => sum + (m.bookings || 0), 0)}
-          color="bg-purple-500"
-        />
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <SummaryCard title="Conversion %" value={conversionPercent + '%'} color="bg-indigo-500" />
+        <SummaryCard title="Auto Leads" value={leadsLoading ? "..." : autoLeadsCount} color="bg-blue-400" />
+        <SummaryCard title="Manual Leads" value={leadsLoading ? "..." : manualLeadsCount} color="bg-blue-600" />
+        <SummaryCard title="Total Leads" value={leadsLoading ? "..." : totalLeadsCount} color="bg-blue-800" />
       </div>
 
       {/* Leaderboard Table */}

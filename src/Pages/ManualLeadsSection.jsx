@@ -124,7 +124,18 @@ export default function ManualLeadsSection({ email }) {
       <div className="bg-white p-4 rounded-xl shadow mb-6">
         <h3 className="text-xl font-semibold text-blue-900 mb-4">➕ Add New Manual Lead</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <input type="text" placeholder="Project" value={newLead.project} onChange={(e) => handleInputChange("project", e.target.value)} className="border border-blue-200 rounded px-3 py-2" />
+          <select
+            value={newLead.project}
+            onChange={(e) => handleInputChange("project", e.target.value)}
+            className="border border-blue-200 rounded px-3 py-2"
+          >
+            <option value="">Select Project</option>
+            <option value="Orchid Life">Orchid Life</option>
+            <option value="Orchid Salisbury">Orchid Salisbury</option>
+            <option value="Orchid Bloomsberry">Orchid Bloomsberry</option>
+            <option value="Orchid Platinum">Orchid Platinum</option>
+            <option value="Riviera Uno">Riviera Uno</option>
+          </select>
           <input type="text" placeholder="Name" value={newLead.name} onChange={(e) => handleInputChange("name", e.target.value)} className="border border-blue-200 rounded px-3 py-2" />
           <input type="text" placeholder="Phone Number" value={newLead.phone} onChange={(e) => handleInputChange("phone", e.target.value)} className="border border-blue-200 rounded px-3 py-2" />
           <input type="text" placeholder="Looking For?" value={newLead.lookingFor} onChange={(e) => handleInputChange("lookingFor", e.target.value)} className="border border-blue-200 rounded px-3 py-2" />
@@ -230,4 +241,8 @@ export default function ManualLeadsSection({ email }) {
       </div>
     </div>
   );
+}
+
+export function getManualLeadsCount(leads) {
+  return Array.isArray(leads) ? leads.length : 0;
 }
