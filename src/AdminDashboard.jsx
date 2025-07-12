@@ -5,7 +5,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from "recharts";
 import { useNavigate } from "react-router-dom";
-import { db } from '../firebase-config.js';
+import { db } from './firebase-config.js';
 import { doc, getDoc, setDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
 
 export default function AdminDashboard() {

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { db } from '../../firebase-config.js';
+import { db } from './firebase-config.js';
 import { doc, getDoc, setDoc, collection, addDoc, getDocs } from 'firebase/firestore';
 
 const API_URL = import.meta.env.VITE_API_URL;
