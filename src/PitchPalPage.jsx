@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { db } from '../../firebase-config.js';
+import { doc, getDoc, setDoc, collection, addDoc, getDocs } from 'firebase/firestore';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -6,31 +8,47 @@ export default function PitchPalPage() {
   const [projectName, setProjectName] = useState("");
   const [loading, setLoading] = useState(false);
   const [insights, setInsights] = useState(null);
+  const [corrections, setCorrections] = useState([]);
+
+  // Fetch corrections from Firestore
+  const fetchCorrections = async (projectName) => {
+    if (!projectName) return [];
+    const correctionsRef = collection(db, 'projects', projectName, 'corrections');
+    const snapshot = await getDocs(correctionsRef);
+    return snapshot.docs.map(doc => doc.data());
+  };
+
+  // Fetch project info from Firestore
+  const fetchProjectInfo = async (projectName) => {
+    const docRef = doc(db, 'projects', projectName);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return docSnap.data();
+    } else {
+      return null;
+    }
+  };
 
   const fetchInsights = async () => {
     setLoading(true);
     setInsights(null);
-
     try {
-      // Fetch project info from Google Sheet
-      const sheetRes = await fetch(
-        `https://script.google.com/macros/s/AKfycbznX9Q-zsf-Trlal1aBSn4WPngHIOeBAycoI8XrmzKUq85aNQ-Mwk0scn86ty-4gsjA/exec?action=getProjectInfo&project=${encodeURIComponent(projectName)}`
-      );
-      const projectInfo = await sheetRes.json();
-
-      if (projectInfo?.error || !projectInfo["Project Name"]) {
+      // Fetch project info from Firestore
+      const projectInfo = await fetchProjectInfo(projectName);
+      if (!projectInfo) {
         alert("❌ Project not found or incomplete data.");
         setLoading(false);
         return;
       }
-
-      // Send to backend AI endpoint
+      // Fetch corrections from Firestore
+      const correctionsArr = await fetchCorrections(projectName);
+      setCorrections(correctionsArr);
+      // Send to backend AI endpoint, including corrections
       const backendRes = await fetch(`${API_URL}/api/generate-pitch`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectInfo }),
+        body: JSON.stringify({ projectInfo, corrections: correctionsArr }),
       });
-
       const aiInsights = await backendRes.json();
       setInsights({ projectInfo, ...aiInsights });
     } catch (err) {
@@ -101,21 +119,15 @@ function Section({ title, content, projectName, fieldKey }) {
   const handleMarkWrong = async (item, index) => {
     const reason = prompt("Why is this wrong?");
     if (!reason) return;
-
     const flaggedBy = localStorage.getItem("email") || "unknown";
-
-    await fetch(`${API_URL}/api/admin/wrong-entries`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        project: projectName,
-        field: fieldKey,
-        rejectedItem: typeof item === "string" ? item : JSON.stringify(item),
-        reason,
-        flaggedBy,
-      }),
+    // Save to Firestore corrections
+    await addDoc(collection(db, 'projects', projectName, 'corrections'), {
+      field: fieldKey,
+      rejectedItem: typeof item === "string" ? item : JSON.stringify(item),
+      reason,
+      flaggedBy,
+      timestamp: new Date().toISOString(),
     });
-
     setRejectedItems((prev) => [...prev, index]);
     alert("Marked as wrong. Thanks for the feedback!");
   };
