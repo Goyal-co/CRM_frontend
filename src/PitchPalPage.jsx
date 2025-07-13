@@ -2,58 +2,139 @@ import { useState } from "react";
 import { db } from './firebase-config.js';
 import { doc, getDoc, setDoc, collection, addDoc, getDocs } from 'firebase/firestore';
 
-const API_URL = import.meta.env.VITE_API_URL;
+// Fallback API URL if environment variable is not set
+const API_URL = import.meta.env.VITE_API_URL || 'https://pratham-server.onrender.com';
+
+console.log('PitchPal using API URL:', API_URL);
 
 export default function PitchPalPage() {
   const [projectName, setProjectName] = useState("");
   const [loading, setLoading] = useState(false);
   const [insights, setInsights] = useState(null);
   const [corrections, setCorrections] = useState([]);
+  const [aiProjectInfo, setAiProjectInfo] = useState(null);
+  const [aiInfoUsed, setAiInfoUsed] = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [error, setError] = useState("");
 
   // Fetch corrections from Firestore
   const fetchCorrections = async (projectName) => {
     if (!projectName) return [];
-    const correctionsRef = collection(db, 'projects', projectName, 'corrections');
-    const snapshot = await getDocs(correctionsRef);
-    return snapshot.docs.map(doc => doc.data());
+    try {
+      const correctionsRef = collection(db, 'projects', projectName, 'corrections');
+      const snapshot = await getDocs(correctionsRef);
+      return snapshot.docs.map(doc => doc.data());
+    } catch (err) {
+      console.error('Error fetching corrections:', err);
+      return [];
+    }
   };
 
   // Fetch project info from Firestore
   const fetchProjectInfo = async (projectName) => {
-    const docRef = doc(db, 'projects', projectName);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      return docSnap.data();
-    } else {
+    try {
+      const docRef = doc(db, 'projects', projectName);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return docSnap.data();
+      } else {
+        return null;
+      }
+    } catch (err) {
+      console.error('Error fetching project info:', err);
       return null;
     }
+  };
+
+  // Save AI-generated info to Firestore
+  const saveAIProjectInfo = async () => {
+    if (!aiProjectInfo || !projectName) return;
+    setSaveLoading(true);
+    setError("");
+    try {
+      await setDoc(doc(db, 'projects', projectName), aiProjectInfo, { merge: true });
+      alert('✅ AI-generated project info saved to CRM!');
+      setAiInfoUsed(false);
+      setAiProjectInfo(null);
+    } catch (err) {
+      const errorMsg = 'Failed to save project info: ' + err.message;
+      alert(errorMsg);
+      setError(errorMsg);
+    }
+    setSaveLoading(false);
   };
 
   const fetchInsights = async () => {
     setLoading(true);
     setInsights(null);
+    setAiProjectInfo(null);
+    setAiInfoUsed(false);
+    setError("");
+    
     try {
       // Fetch project info from Firestore
-      const projectInfo = await fetchProjectInfo(projectName);
+      let projectInfo = await fetchProjectInfo(projectName);
+      let usedAI = false;
+      let backendRes, aiInsights;
+      
       if (!projectInfo) {
-        alert("❌ Project not found or incomplete data.");
-        setLoading(false);
-        return;
+        // If not found, call backend with only projectName
+        console.log('No project info found, generating from scratch...');
+        backendRes = await fetch(`${API_URL}/api/generate-pitch`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ projectName }),
+        });
+        
+        if (!backendRes.ok) {
+          const text = await backendRes.text();
+          throw new Error(`Backend error (${backendRes.status}): ${text.slice(0, 200)}`);
+        }
+        
+        try {
+          aiInsights = await backendRes.json();
+        } catch (jsonErr) {
+          const text = await backendRes.text();
+          throw new Error(`Invalid JSON response: ${text.slice(0, 200)}`);
+        }
+        
+        projectInfo = aiInsights.projectInfo;
+        setAiProjectInfo(projectInfo);
+        setAiInfoUsed(true);
+        usedAI = true;
       }
+      
       // Fetch corrections from Firestore
       const correctionsArr = await fetchCorrections(projectName);
       setCorrections(correctionsArr);
+      
       // Send to backend AI endpoint, including corrections
-      const backendRes = await fetch(`${API_URL}/api/generate-pitch`, {
+      backendRes = await fetch(`${API_URL}/api/generate-pitch`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ projectInfo, corrections: correctionsArr }),
       });
-      const aiInsights = await backendRes.json();
-      setInsights({ projectInfo, ...aiInsights });
+      
+      if (!backendRes.ok) {
+        const text = await backendRes.text();
+        throw new Error(`Backend error (${backendRes.status}): ${text.slice(0, 200)}`);
+      }
+      
+      try {
+        aiInsights = await backendRes.json();
+      } catch (jsonErr) {
+        const text = await backendRes.text();
+        throw new Error(`Invalid JSON response: ${text.slice(0, 200)}`);
+      }
+      
+      setInsights({ projectInfo, ...aiInsights, usedAI });
+      if (usedAI) {
+        alert("ℹ️ Project info was generated by AI. Please review and save if correct.");
+      }
     } catch (err) {
-      console.error(err);
-      alert("⚠️ Something went wrong. Please try again.");
+      const errorMsg = "⚠️ Something went wrong. Please try again.\n" + (err.message || err);
+      setError(errorMsg);
+      alert(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -62,10 +143,15 @@ export default function PitchPalPage() {
   return (
     <div className="min-h-screen bg-[#f9fafb] p-6 max-w-4xl mx-auto">
       <h2 className="text-3xl font-bold text-center text-blue-900 mb-8">
-  🧠 Titan PitchPal AI
-</h2>
-
-
+        🧠 Titan PitchPal AI
+      </h2>
+      
+      {error && (
+        <div className="mb-4 p-4 bg-red-100 border border-red-400 rounded text-red-700">
+          {error}
+        </div>
+      )}
+      
       <div className="mb-6 flex flex-col sm:flex-row items-center gap-4">
         <input
           type="text"
@@ -77,59 +163,73 @@ export default function PitchPalPage() {
         <button
           onClick={fetchInsights}
           disabled={loading || !projectName}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded font-semibold transition"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded font-semibold transition disabled:opacity-50"
         >
           {loading ? "Generating..." : "Generate Insights"}
         </button>
       </div>
-
+      
+      {aiInfoUsed && aiProjectInfo && (
+        <div className="mb-4 p-4 bg-yellow-100 border border-yellow-400 rounded">
+          <div className="mb-2 text-yellow-800 font-semibold">AI-generated project info (not yet saved):</div>
+          <pre className="bg-white p-2 rounded text-sm overflow-x-auto">{JSON.stringify(aiProjectInfo, null, 2)}</pre>
+          <button
+            onClick={saveAIProjectInfo}
+            disabled={saveLoading}
+            className="mt-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded disabled:opacity-50"
+          >
+            {saveLoading ? "Saving..." : "Save to CRM"}
+          </button>
+        </div>
+      )}
+      
       {insights && (
         <div className="space-y-6">
           <Section title="📌 Project Info" content={formatProjectInfo(insights.projectInfo)} />
-<Section title="🎯 Why This Project?" content={insights.whyThis} projectName={projectName} fieldKey="whyThis" />
-<Section title="📊 Top Nearby Projects" content={insights.nearbyProjects} projectName={projectName} fieldKey="nearbyProjects" />
-<Section title="🧠 Pitch Lines" content={insights.pitchLines} projectName={projectName} fieldKey="pitchLines" />
-<Section title="❓ FAQs" content={insights.faqs} projectName={projectName} fieldKey="faqs" />
-<Section title="💬 WhatsApp Message" content={insights.whatsappMessage} projectName={projectName} fieldKey="whatsappMessage" />
-
-
+          <Section title="🎯 Why This Project?" content={insights.whyThis} projectName={projectName} fieldKey="whyThis" />
+          <Section title="📊 Top Nearby Projects" content={insights.nearbyProjects} projectName={projectName} fieldKey="nearbyProjects" />
+          <Section title="🧠 Pitch Lines" content={insights.pitchLines} projectName={projectName} fieldKey="pitchLines" />
+          <Section title="❓ FAQs" content={insights.faqs} projectName={projectName} fieldKey="faqs" />
+          <Section title="💬 WhatsApp Message" content={insights.whatsappMessage} projectName={projectName} fieldKey="whatsappMessage" />
           {insights.priceJustification && (
-  <Section title="💸 Price Justification" content={insights.priceJustification} />
-)}
-
-{insights.objectionHandler && (
-  <Section title="🧠 Objection Handler" content={insights.objectionHandler} />
-)}
-
-{insights.financeTips && (
-  <Section title="💡 Finance & Tax Tips" content={insights.financeTips} />
-)}
-
+            <Section title="💸 Price Justification" content={insights.priceJustification} projectName={projectName} fieldKey="priceJustification" />
+          )}
+          {insights.objectionHandler && (
+            <Section title="🧠 Objection Handler" content={insights.objectionHandler} projectName={projectName} fieldKey="objectionHandler" />
+          )}
+          {insights.financeTips && (
+            <Section title="💡 Finance & Tax Tips" content={insights.financeTips} projectName={projectName} fieldKey="financeTips" />
+          )}
         </div>
-        
       )}
     </div>
   );
 }
 
 function Section({ title, content, projectName, fieldKey }) {
-  const [corrections, setCorrections] = useState({});
   const [rejectedItems, setRejectedItems] = useState([]);
 
   const handleMarkWrong = async (item, index) => {
     const reason = prompt("Why is this wrong?");
     if (!reason) return;
+    
     const flaggedBy = localStorage.getItem("email") || "unknown";
-    // Save to Firestore corrections
-    await addDoc(collection(db, 'projects', projectName, 'corrections'), {
-      field: fieldKey,
-      rejectedItem: typeof item === "string" ? item : JSON.stringify(item),
-      reason,
-      flaggedBy,
-      timestamp: new Date().toISOString(),
-    });
-    setRejectedItems((prev) => [...prev, index]);
-    alert("Marked as wrong. Thanks for the feedback!");
+    
+    try {
+      // Save to Firestore corrections
+      await addDoc(collection(db, 'projects', projectName, 'corrections'), {
+        field: fieldKey,
+        rejectedItem: typeof item === "string" ? item : JSON.stringify(item),
+        reason,
+        flaggedBy,
+        timestamp: new Date().toISOString(),
+      });
+      
+      setRejectedItems((prev) => [...prev, index]);
+      alert("✅ Marked as wrong. Thanks for the feedback!");
+    } catch (err) {
+      alert("❌ Failed to save correction: " + err.message);
+    }
   };
 
   return (
@@ -145,7 +245,7 @@ function Section({ title, content, projectName, fieldKey }) {
               {!rejectedItems.includes(index) && (
                 <button
                   onClick={() => handleMarkWrong(item, index)}
-                  className="text-sm text-red-500 underline"
+                  className="text-sm text-red-500 underline hover:text-red-700"
                 >
                   Mark Wrong
                 </button>
@@ -160,9 +260,8 @@ function Section({ title, content, projectName, fieldKey }) {
   );
 }
 
-
-
 function formatProjectInfo(info) {
+  if (!info || typeof info !== 'object') return 'No project info available';
   return Object.entries(info)
     .map(([key, value]) => `${key}: ${value}`)
     .join("\n");

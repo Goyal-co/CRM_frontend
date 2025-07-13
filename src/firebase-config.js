@@ -1,7 +1,7 @@
 // Firebase configuration for backend
 import { initializeApp } from 'firebase/app';
 import { getStorage } from 'firebase/storage';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: "AIzaSyAkmFLpWPDcjkzK3tYE0g0gNx4fxU74V8c",
@@ -19,5 +19,21 @@ const app = initializeApp(firebaseConfig);
 // Initialize Firebase Storage and Firestore
 export const storage = getStorage(app);
 export const db = getFirestore(app);
+
+// Configure Firestore settings for better performance
+const firestoreSettings = {
+  cacheSizeBytes: 50 * 1024 * 1024, // 50MB cache
+  experimentalForceLongPolling: true, // Better for some network conditions
+  useFetchStreams: false, // Disable for better compatibility
+};
+
+// Apply settings if not in development
+if (process.env.NODE_ENV !== 'development') {
+  // In production, we don't connect to emulator
+} else {
+  // In development, optionally connect to emulator
+  // Uncomment the next line if you want to use Firestore emulator
+  // connectFirestoreEmulator(db, 'localhost', 8080);
+}
 
 export default app; 

@@ -320,14 +320,20 @@ function ProjectInfoEditor() {
   const userEmail = localStorage.getItem("email") || "";
   const isAdmin = adminEmails.includes(userEmail);
 
+  // Add a new state for the textarea value
+  const [projectInfoInput, setProjectInfoInput] = useState("");
+
   // Fetch all projects from Firestore
   const fetchProjects = async () => {
     setLoading(true);
+    setError("");
     try {
       const snapshot = await getDocs(collection(db, 'projects'));
       setProjects(snapshot.docs.map(doc => doc.id));
+      console.log('Fetched projects:', snapshot.docs.map(doc => doc.id));
     } catch (err) {
-      setError("Failed to fetch projects");
+      console.error('Error fetching projects:', err);
+      setError("Failed to fetch projects: " + err.message);
     }
     setLoading(false);
   };
@@ -335,16 +341,20 @@ function ProjectInfoEditor() {
   // Fetch selected project info
   const fetchProjectInfo = async (projectName) => {
     setLoading(true);
+    setError("");
     try {
       const docRef = doc(db, 'projects', projectName);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         setProjectInfo(docSnap.data());
+        console.log('Fetched project info for:', projectName, docSnap.data());
       } else {
         setProjectInfo({});
+        console.log('No project info found for:', projectName);
       }
     } catch (err) {
-      setError("Failed to fetch project info");
+      console.error('Error fetching project info:', err);
+      setError("Failed to fetch project info: " + err.message);
     }
     setLoading(false);
   };
@@ -353,126 +363,230 @@ function ProjectInfoEditor() {
   const fetchCorrections = async (projectName) => {
     if (!projectName) return;
     setLoading(true);
+    setError("");
     try {
       const snapshot = await getDocs(collection(db, 'projects', projectName, 'corrections'));
       setCorrections(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      console.log('Fetched corrections for:', projectName, snapshot.docs.length);
     } catch (err) {
-      setError("Failed to fetch corrections");
+      console.error('Error fetching corrections:', err);
+      setError("Failed to fetch corrections: " + err.message);
     }
     setLoading(false);
   };
 
+  // When a project is selected, set the input value to the stringified projectInfo or empty string
+  useEffect(() => {
+    if (typeof projectInfo === 'object' && Object.keys(projectInfo).length > 0) {
+      setProjectInfoInput(JSON.stringify(projectInfo, null, 2));
+    } else if (typeof projectInfo === 'string') {
+      setProjectInfoInput(projectInfo);
+    } else {
+      setProjectInfoInput("");
+    }
+  }, [projectInfo, selectedProject]);
+
   // Save project info to Firestore
   const saveProjectInfo = async () => {
-    setError(""); setSuccess("");
+    setError(""); 
+    setSuccess("");
     setLoading(true);
+    
+    if (projectInfoInput.trim() === "") {
+      setError("Project info cannot be empty.");
+      setLoading(false);
+      return;
+    }
+    
+    let infoToSave;
     try {
-      await setDoc(doc(db, 'projects', selectedProject), projectInfo, { merge: true });
-      setSuccess("Project info updated!");
-      setTimeout(() => { setSuccess(""); fetchProjects(); }, 2000);
+      // Try to parse as JSON first
+      infoToSave = JSON.parse(projectInfoInput);
+    } catch (jsonErr) {
+      // If not valid JSON, treat as plain text
+      infoToSave = { notes: projectInfoInput.trim() };
+    }
+    
+    try {
+      await setDoc(doc(db, 'projects', selectedProject), infoToSave, { merge: true });
+      setSuccess("✅ Project info updated successfully!");
+      setTimeout(() => { 
+        setSuccess(""); 
+        fetchProjects(); 
+      }, 2000);
     } catch (err) {
-      setError("Failed to save project info");
+      setError("Failed to save project info: " + err.message);
     }
     setLoading(false);
   };
 
   // Create new project
   const createNewProject = async () => {
-    setError(""); setSuccess("");
-    if (!newProject.name) { setError("Project name required"); return; }
+    setError(""); 
+    setSuccess("");
+    
+    if (!newProject.name.trim()) { 
+      setError("Project name is required"); 
+      return; 
+    }
+    
     setLoading(true);
     try {
-      await setDoc(doc(db, 'projects', newProject.name), newProject.info);
-      setSuccess("Project created!");
+      let infoToSave = newProject.info;
+      if (typeof newProject.info === 'string' && newProject.info.trim()) {
+        try {
+          infoToSave = JSON.parse(newProject.info);
+        } catch {
+          infoToSave = { notes: newProject.info.trim() };
+        }
+      }
+      
+      await setDoc(doc(db, 'projects', newProject.name.trim()), infoToSave);
+      setSuccess("✅ Project created successfully!");
       setShowNewProject(false);
       setNewProject({ name: "", info: {} });
       fetchProjects();
     } catch (err) {
-      setError("Failed to create project");
+      setError("Failed to create project: " + err.message);
     }
     setLoading(false);
   };
 
   // Delete/resolve a correction
   const deleteCorrection = async (correctionId) => {
-    setError(""); setSuccess("");
+    setError(""); 
+    setSuccess("");
     setLoading(true);
     try {
       await deleteDoc(doc(db, 'projects', selectedProject, 'corrections', correctionId));
       setCorrections(corrections.filter(c => c.id !== correctionId));
-      setSuccess("Correction resolved/deleted");
+      setSuccess("✅ Correction resolved/deleted");
       setTimeout(() => { setSuccess(""); }, 2000);
     } catch (err) {
-      setError("Failed to delete correction");
+      setError("Failed to delete correction: " + err.message);
     }
     setLoading(false);
   };
 
   useEffect(() => { fetchProjects(); }, []);
-  useEffect(() => { if (selectedProject) { fetchProjectInfo(selectedProject); fetchCorrections(selectedProject); } }, [selectedProject]);
+  useEffect(() => { 
+    if (selectedProject) { 
+      fetchProjectInfo(selectedProject); 
+      fetchCorrections(selectedProject); 
+    } 
+  }, [selectedProject]);
 
   if (!isAdmin) return null;
 
   return (
     <div className="bg-white rounded-xl shadow p-6 mb-8">
       <h3 className="text-lg font-bold mb-4 text-blue-800">🛠️ Update Project Info</h3>
-      {error && <div className="text-red-600 mb-2">{error}</div>}
-      {success && <div className="text-green-600 mb-2">{success}</div>}
+      {error && <div className="text-red-600 mb-2 p-2 bg-red-50 rounded">{error}</div>}
+      {success && <div className="text-green-600 mb-2 p-2 bg-green-50 rounded">{success}</div>}
+      
       <div className="mb-4 flex gap-4 items-center">
-        <select value={selectedProject} onChange={e => setSelectedProject(e.target.value)} className="border p-2 rounded">
+        <select 
+          value={selectedProject} 
+          onChange={e => setSelectedProject(e.target.value)} 
+          className="border p-2 rounded"
+          disabled={loading}
+        >
           <option value="">Select Project</option>
           {projects.map(p => <option key={p} value={p}>{p}</option>)}
         </select>
-        <button onClick={() => setShowNewProject(!showNewProject)} className="bg-green-500 text-white px-3 py-1 rounded">{showNewProject ? "Cancel" : "Create New Project"}</button>
+        <button 
+          onClick={() => setShowNewProject(!showNewProject)} 
+          className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
+          disabled={loading}
+        >
+          {showNewProject ? "Cancel" : "Create New Project"}
+        </button>
       </div>
+      
       {showNewProject && (
         <div className="mb-4 p-4 border rounded bg-gray-50">
-          <input className="border p-2 rounded w-full mb-2" placeholder="Project Name" value={newProject.name} onChange={e => setNewProject({ ...newProject, name: e.target.value })} />
-          {/* Add fields for new project info as needed */}
-          <textarea className="border p-2 rounded w-full mb-2" placeholder="Project Info (JSON)" value={JSON.stringify(newProject.info)} onChange={e => {
-            try {
-              setNewProject({ ...newProject, info: JSON.parse(e.target.value || '{}') });
+          <input 
+            className="border p-2 rounded w-full mb-2" 
+            placeholder="Project Name" 
+            value={newProject.name} 
+            onChange={e => setNewProject({ ...newProject, name: e.target.value })}
+          />
+          <textarea 
+            className="border p-2 rounded w-full mb-2" 
+            placeholder="Project Info (JSON or plain text)" 
+            value={typeof newProject.info === 'object' ? JSON.stringify(newProject.info, null, 2) : (newProject.info || '')} 
+            onChange={e => {
+              setNewProject({ ...newProject, info: e.target.value });
               setError("");
-            } catch {
-              setError("Invalid JSON format for project info.");
-            }
-          }} />
-          <button onClick={createNewProject} className="bg-blue-600 text-white px-4 py-2 rounded">Save Project</button>
+            }}
+            rows={4}
+          />
+          <button 
+            onClick={createNewProject} 
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+            disabled={loading}
+          >
+            {loading ? "Creating..." : "Save Project"}
+          </button>
         </div>
       )}
+      
       {selectedProject && (
         <div>
-          {Object.keys(projectInfo).map(key => (
-            <div key={key} className="mb-2">
-              <label className="block text-sm font-semibold text-gray-700">{key}</label>
-              <input
-                className="border p-2 rounded w-full"
-                value={projectInfo[key]}
-                onChange={e => setProjectInfo({ ...projectInfo, [key]: e.target.value })}
-              />
+          <div className="mb-4">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Project Info (JSON or plain text)
+            </label>
+            <textarea
+              className="border p-2 rounded w-full mb-2"
+              placeholder="Enter project info as JSON or plain text..."
+              value={projectInfoInput}
+              onChange={e => {
+                setProjectInfoInput(e.target.value);
+                setError("");
+              }}
+              rows={6}
+            />
+            <div className="text-sm text-gray-600 mb-2">
+              💡 Tip: You can enter JSON format or plain text. Plain text will be saved as {"{notes: 'your text'}"}.
             </div>
-          ))}
+          </div>
+          
           <button
             onClick={saveProjectInfo}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded mt-2"
-            disabled={loading}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded mt-2 disabled:opacity-50"
+            disabled={loading || projectInfoInput.trim() === ""}
           >
             {loading ? "Saving..." : "Save Info"}
           </button>
         </div>
       )}
+      
       {/* Corrections Section */}
       {selectedProject && corrections.length > 0 && (
         <div className="mt-6">
           <h4 className="font-bold text-blue-700 mb-2">Corrections/Flags for this Project</h4>
-          <ul className="list-disc pl-6">
+          <div className="space-y-2">
             {corrections.map(c => (
-              <li key={c.id} className="mb-2 flex items-center gap-2">
-                <span className="text-gray-700">[{c.field}] {c.rejectedItem} - <span className="italic text-xs">{c.reason}</span></span>
-                <button onClick={() => deleteCorrection(c.id)} className="text-xs text-red-500 underline">Resolve/Delete</button>
-              </li>
+              <div key={c.id} className="p-3 bg-red-50 border border-red-200 rounded">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <div className="font-semibold text-red-800">Field: {c.field}</div>
+                    <div className="text-sm text-red-700">Rejected: {c.rejectedItem}</div>
+                    <div className="text-sm text-gray-600">Reason: {c.reason}</div>
+                    <div className="text-xs text-gray-500">By: {c.flaggedBy} on {new Date(c.timestamp).toLocaleDateString()}</div>
+                  </div>
+                  <button
+                    onClick={() => deleteCorrection(c.id)}
+                    className="text-red-600 hover:text-red-800 text-sm underline ml-2"
+                    disabled={loading}
+                  >
+                    Resolve
+                  </button>
+                </div>
+              </div>
             ))}
-          </ul>
+          </div>
         </div>
       )}
     </div>

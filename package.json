@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
+    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview",
+    "check-env": "node -e \"console.log('VITE_API_URL:', process.env.VITE_API_URL || 'NOT SET'); console.log('Using fallback:', process.env.VITE_API_URL || 'https://pratham-server.onrender.com');\""
   },
   "dependencies": {
     "@react-oauth/google": "^0.12.2",
