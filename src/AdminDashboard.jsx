@@ -28,6 +28,33 @@ export default function AdminDashboard() {
   const [bookingsCount, setBookingsCount] = useState(0);
   const [conversionPercent, setConversionPercent] = useState("0.0");
 
+  // Dynamically get columns from teamStats for the leaderboard table
+  const teamStatsColumns = teamStats.length > 0
+    ? Object.keys(teamStats[0]).filter(key => key !== 'name')
+    : [];
+
+  // Defensive fallback for all expected fields
+  function getStat(member, key) {
+    return (
+      member[key] ??
+      member[key.charAt(0).toUpperCase() + key.slice(1)] ??
+      0
+    );
+  }
+
+  // Sort leaderboard by score descending (default 0)
+  const sortedTeamStats = [...teamStats].sort((a, b) => (getStat(b, 'score')) - (getStat(a, 'score')));
+
+  // Calculate quality counts for each member (frontend fallback)
+  const teamStatsWithQuality = sortedTeamStats.map(member => {
+    const wip = getStat(member, 'wip');
+    const warm = getStat(member, 'warm');
+    const cold = getStat(member, 'cold');
+    return { ...member, wip, warm, cold };
+  });
+  
+
+  // Note: Cross-Origin-Opener-Policy warnings in the browser console are unrelated to this dashboard logic and can be ignored unless you are using window.open or window.postMessage between different origins.
   const handleFilterChange = (key, value) => {
     // Normalize project names for backend API calls
     if (key === "project" && value) {
@@ -146,13 +173,20 @@ export default function AdminDashboard() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-        <SummaryCard title="Auto Leads" value={leadsLoading ? "..." : autoLeadsCount} color="bg-blue-400" />
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
+        <SummaryCard
+          title="Auto Leads"
+          value={leadsLoading ? "..." : teamStats.reduce((sum, t) => sum + (t.leads ?? 0), 0)}
+          color="bg-blue-400"
+        />
         <SummaryCard title="Manual Leads" value={leadsLoading ? "..." : manualLeadsCount} color="bg-blue-600" />
         <SummaryCard title="Total Leads" value={leadsLoading ? "..." : totalLeadsCount} color="bg-blue-800" />
         <SummaryCard title="Site Visits" value={leadsLoading ? "..." : siteVisitsCount} color="bg-green-500" />
         <SummaryCard title="Bookings" value={leadsLoading ? "..." : bookingsCount} color="bg-purple-500" />
         <SummaryCard title="Conversion %" value={leadsLoading ? "..." : conversionPercent + "%"} color="bg-yellow-500" />
+        <SummaryCard title="Manual WIP" value={leadsLoading ? "..." : teamStats.reduce((sum, t) => sum + (t.manualWIP || 0), 0)} color="bg-red-400" />
+        <SummaryCard title="Manual Warm" value={leadsLoading ? "..." : teamStats.reduce((sum, t) => sum + (t.manualWarm || 0), 0)} color="bg-yellow-300" />
+        <SummaryCard title="Manual Cold" value={leadsLoading ? "..." : teamStats.reduce((sum, t) => sum + (t.manualCold || 0), 0)} color="bg-blue-400" />
       </div>
 
       {/* Leaderboard Table */}
@@ -165,59 +199,50 @@ export default function AdminDashboard() {
               <th className="p-2">Leads</th>
               <th className="p-2">Auto Leads</th>
               <th className="p-2">Manual Leads</th>
-              <th className="p-2">Called</th>
               <th className="p-2">Site Visits</th>
               <th className="p-2">Bookings</th>
-              <th className="p-2">Call Delays</th>
-              <th className="p-2">Conversion %</th>
               <th className="p-2">WIP (Auto)</th>
               <th className="p-2">WIP (Manual)</th>
               <th className="p-2">Warm (Auto)</th>
               <th className="p-2">Warm (Manual)</th>
               <th className="p-2">Cold (Auto)</th>
               <th className="p-2">Cold (Manual)</th>
+              <th className="p-2">Score</th>
             </tr>
           </thead>
           <tbody>
-            {teamStats.map((t, i) => {
-              const conversion = t.bookings && t.leads ? ((t.bookings / t.leads) * 100).toFixed(1) + "%" : "0%";
-              return (
+            {teamStatsWithQuality.map((t, i) => (
                 <tr key={i} className="border-t hover:bg-gray-50">
-                  <td className="p-2">{t.name}</td>
-                  <td className="p-2 text-center">{t.leads}</td>
-                  <td className="p-2 text-center">{t.autoLeads || 0}</td>
-                  <td className="p-2 text-center">{t.manualLeads || 0}</td>
-                  <td className="p-2 text-center">{t.called}</td>
-                  <td className="p-2 text-center">{t.siteVisits}</td>
-                  <td className="p-2 text-center">{t.bookings}</td>
-                  <td className="p-2 text-center">{t.callDelay || 0}</td>
-                  <td className="p-2 text-center">{conversion}</td>
-                  <td className="p-2 text-center">{t.autoWIP || 0}</td>
-                  <td className="p-2 text-center">{t.manualWIP || 0}</td>
-                  <td className="p-2 text-center">{t.autoWarm || 0}</td>
-                  <td className="p-2 text-center">{t.manualWarm || 0}</td>
-                  <td className="p-2 text-center">{t.autoCold || 0}</td>
-                  <td className="p-2 text-center">{t.manualCold || 0}</td>
+                  <td className="p-2">{t.name || '-'}</td>
+                  <td className="p-2 text-center">{getStat(t, 'leads')}</td>
+                  <td className="p-2 text-center">{getStat(t, 'autoLeads')}</td>
+                  <td className="p-2 text-center">{getStat(t, 'manualLeads')}</td>
+                  <td className="p-2 text-center">{getStat(t, 'siteVisits')}</td>
+                  <td className="p-2 text-center">{getStat(t, 'bookings')}</td>
+                  <td className="p-2 text-center">{getStat(t, 'autoWIP')}</td>
+                  <td className="p-2 text-center">{getStat(t, 'manualWIP')}</td>
+                  <td className="p-2 text-center">{getStat(t, 'autoWarm')}</td>
+                  <td className="p-2 text-center">{getStat(t, 'manualWarm')}</td>
+                  <td className="p-2 text-center">{getStat(t, 'autoCold')}</td>
+                  <td className="p-2 text-center">{getStat(t, 'manualCold')}</td>
+                  <td className="p-2 text-center">{getStat(t, 'score')}</td>
                 </tr>
-              );
-            })}
+            ))}
             {/* Summary row */}
             <tr className="font-bold bg-gray-100">
               <td className="p-2 text-right">Total</td>
-              <td className="p-2 text-center">{teamStats.reduce((sum, t) => sum + (t.leads || 0), 0)}</td>
-              <td className="p-2 text-center">{teamStats.reduce((sum, t) => sum + (t.autoLeads || 0), 0)}</td>
-              <td className="p-2 text-center">{teamStats.reduce((sum, t) => sum + (t.manualLeads || 0), 0)}</td>
-              <td className="p-2 text-center">{teamStats.reduce((sum, t) => sum + (t.called || 0), 0)}</td>
-              <td className="p-2 text-center">{teamStats.reduce((sum, t) => sum + (t.siteVisits || 0), 0)}</td>
-              <td className="p-2 text-center">{teamStats.reduce((sum, t) => sum + (t.bookings || 0), 0)}</td>
-              <td className="p-2 text-center">{teamStats.reduce((sum, t) => sum + (t.callDelay || 0), 0)}</td>
-              <td className="p-2 text-center">-</td>
-              <td className="p-2 text-center">{teamStats.reduce((sum, t) => sum + (t.autoWIP || 0), 0)}</td>
-              <td className="p-2 text-center">{teamStats.reduce((sum, t) => sum + (t.manualWIP || 0), 0)}</td>
-              <td className="p-2 text-center">{teamStats.reduce((sum, t) => sum + (t.autoWarm || 0), 0)}</td>
-              <td className="p-2 text-center">{teamStats.reduce((sum, t) => sum + (t.manualWarm || 0), 0)}</td>
-              <td className="p-2 text-center">{teamStats.reduce((sum, t) => sum + (t.autoCold || 0), 0)}</td>
-              <td className="p-2 text-center">{teamStats.reduce((sum, t) => sum + (t.manualCold || 0), 0)}</td>
+              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'leads'), 0)}</td>
+              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'autoLeads'), 0)}</td>
+              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'manualLeads'), 0)}</td>
+              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'siteVisits'), 0)}</td>
+              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'bookings'), 0)}</td>
+              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'autoWIP'), 0)}</td>
+              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'manualWIP'), 0)}</td>
+              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'autoWarm'), 0)}</td>
+              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'manualWarm'), 0)}</td>
+              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'autoCold'), 0)}</td>
+              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'manualCold'), 0)}</td>
+              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'score'), 0)}</td>
             </tr>
           </tbody>
         </table>
