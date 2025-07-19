@@ -11,7 +11,7 @@ export default function UserDashboard({ email, name }) {
     siteVisits: 0,
     bookings: 0,
   });
-  const [qualityCounts, setQualityCounts] = useState({ WIP: 0, Warm: 0, Cold: 0 });
+  const [qualityCounts, setQualityCounts] = useState({ WIP: 0, Warm: 0, Cold: 0 , Junk: 0, Invalid: 0});
 
   useEffect(() => {
     fetch(`https://script.google.com/macros/s/https://script.google.com/macros/s/AKfycbzeKaQOlSZPIGJbdmFCUmz-dNxGFdHTDPPKeUVg-aACZPYHsl9sVAkkc7Af3Lck8Jz8/exec/exec?email=${email}`)
@@ -20,11 +20,13 @@ export default function UserDashboard({ email, name }) {
         setStats(data);
         // Calculate quality counts if data.leads is available
         if (Array.isArray(data.leads)) {
-          const counts = { WIP: 0, Warm: 0, Cold: 0 };
+          const counts = { WIP: 0, Warm: 0, Cold: 0 , Junk: 0, Invalid: 0 };
           data.leads.forEach(l => {
             if (l.quality === 'WIP') counts.WIP++;
             else if (l.quality === 'Warm') counts.Warm++;
             else if (l.quality === 'Cold') counts.Cold++;
+            else if (l.quality === 'Junk') counts.Junk++;
+            else if (l.quality === 'Invalid') counts.Invalid++;
           });
           setQualityCounts(counts);
         }
@@ -72,7 +74,9 @@ export default function UserDashboard({ email, name }) {
           <span style={{ marginRight: '20px', color: '#ef4444' }}>WIP: {qualityCounts.WIP}</span>
           <span style={{ marginRight: '20px', color: '#facc15' }}>Warm: {qualityCounts.Warm}</span>
           <span style={{ color: '#3b82f6' }}>Cold: {qualityCounts.Cold}</span>
-        </div>
+          <span style={{ color: '#6b7280' }}>Junk: {qualityCounts.Junk}</span>
+          <span style={{ color: '#ef4444' }}>Invalid: {qualityCounts.Invalid}</span>
+          </div>
       </div>
 
       <LeadsTable email={email} isAdmin={false} />

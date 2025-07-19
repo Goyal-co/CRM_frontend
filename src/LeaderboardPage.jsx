@@ -44,6 +44,10 @@ export default function LeaderboardPage() {
                   <th className="p-5">Warm (Manual)</th>
                   <th className="p-5">Cold (Auto)</th>
                   <th className="p-5">Cold (Manual)</th>
+                  <th className="p-5">Junk (Auto)</th>
+                  <th className="p-5">Junk (Manual)</th>
+                  <th className="p-5">Invalid (Auto)</th>
+                  <th className="p-5">Invalid (Manual)</th>
                 </tr>
               </thead>
               <tbody>
@@ -62,7 +66,11 @@ export default function LeaderboardPage() {
                     <td className="p-5">{member.manualWarm || 0}</td>
                     <td className="p-5">{member.autoCold || 0}</td>
                     <td className="p-5">{member.manualCold || 0}</td>
-                  </tr>
+                    <td className="p-5">{member.autoJunk || 0}</td>
+                    <td className="p-5">{member.manualJunk || 0}</td>
+                    <td className="p-5">{member.autoInvalid || 0}</td>
+                    <td className="p-5">{member.manualInvalid || 0}</td>
+                    </tr>
                 ))}
               </tbody>
             </table>

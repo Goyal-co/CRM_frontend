@@ -4,6 +4,8 @@ import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from "recharts";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 import { useNavigate } from "react-router-dom";
 import { db } from './firebase-config.js';
 import { doc, getDoc, setDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
@@ -107,9 +109,19 @@ export default function AdminDashboard() {
         else setBookingsCount((data.teamStats || []).reduce((sum, t) => sum + (t.bookings || 0), 0));
         if (typeof data.conversionPercent === 'string' || typeof data.conversionPercent === 'number') setConversionPercent(data.conversionPercent.toString());
         else {
-          const total = (data.autoLeadsCount || 0) + (data.manualLeadsCount || 0);
-          const bookings = (typeof data.bookingsCount === 'number') ? data.bookingsCount : (data.teamStats || []).reduce((sum, t) => sum + (t.bookings || 0), 0);
-          setConversionPercent(total > 0 ? ((bookings / total) * 100).toFixed(1) : "0.0");
+          const totalLeads = (data.autoLeadsCount || 0) + (data.manualLeadsCount || 0);
+          const junkLeads = (data.autoJunk || 0) + (data.manualJunk || 0);
+          const effectiveLeads = totalLeads - junkLeads;
+        
+          const bookings = typeof data.bookingsCount === 'number'
+            ? data.bookingsCount
+            : (data.teamStats || []).reduce((sum, t) => sum + (t.bookings || 0), 0);
+        
+          const percent = effectiveLeads > 0
+            ? ((bookings / effectiveLeads) * 100).toFixed(1)
+            : "0.0";
+        
+          setConversionPercent(percent);
         }
       } catch (err) {
         console.error("Error fetching admin stats:", err);
@@ -146,6 +158,37 @@ export default function AdminDashboard() {
       console.error("Failed to update team status", err);
     }
   };
+  const exportLeaderboardToExcel = () => {
+    const data = teamStatsWithQuality.map(member => ({
+      Name: member.name || "-",
+      "Leads": (getStat(member, 'autoLeads') || getStat(member, 'auto') || 0) +
+               (getStat(member, 'manualLeads') || getStat(member, 'manual') || 0),
+      "Auto Leads": getStat(member, 'autoLeads') || getStat(member, 'auto') || 0,
+      "Manual Leads": getStat(member, 'manualLeads') || getStat(member, 'manual') || 0,
+      "Site Visits": getStat(member, 'siteVisits'),
+      "Bookings": getStat(member, 'bookings'),
+      "WIP (Auto)": getStat(member, 'autoWIP'),
+      "WIP (Manual)": getStat(member, 'manualWIP'),
+      "Warm (Auto)": getStat(member, 'autoWarm'),
+      "Warm (Manual)": getStat(member, 'manualWarm'),
+      "Cold (Auto)": getStat(member, 'autoCold'),
+      "Cold (Manual)": getStat(member, 'manualCold'),
+      "Junk (Auto)": getStat(member, 'autoJunk'),
+      "Junk (Manual)": getStat(member, 'manualJunk'),
+      "Invalid (Auto)": getStat(member, 'autoInvalid'),
+      "Invalid (Manual)": getStat(member, 'manualInvalid'),
+      "Score": getStat(member, 'score')
+    }));
+  
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Leaderboard");
+  
+    const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    const file = new Blob([excelBuffer], { type: "application/octet-stream" });
+    saveAs(file, "TeamLeaderboard.xlsx");
+  };
+  
 
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
@@ -181,12 +224,18 @@ export default function AdminDashboard() {
         />
         <SummaryCard title="Manual Leads" value={leadsLoading ? "..." : manualLeadsCount} color="bg-blue-600" />
         <SummaryCard title="Total Leads" value={leadsLoading ? "..." : totalLeadsCount} color="bg-blue-800" />
+        <SummaryCard 
+  title="Junk Leads" 
+  value={leadsLoading ? "..." : teamStats.reduce((sum, t) => sum + (t.autoJunk || t.manualJunk || 0), 0)} 
+  color="bg-red-600" 
+/>
         <SummaryCard title="Site Visits" value={leadsLoading ? "..." : siteVisitsCount} color="bg-green-500" />
         <SummaryCard title="Bookings" value={leadsLoading ? "..." : bookingsCount} color="bg-purple-500" />
         <SummaryCard title="Conversion %" value={leadsLoading ? "..." : conversionPercent + "%"} color="bg-yellow-500" />
         <SummaryCard title="Manual WIP" value={leadsLoading ? "..." : teamStats.reduce((sum, t) => sum + (t.manualWIP || 0), 0)} color="bg-red-400" />
 <SummaryCard title="Manual Warm" value={leadsLoading ? "..." : teamStats.reduce((sum, t) => sum + (t.manualWarm || 0), 0)} color="bg-yellow-300" />
 <SummaryCard title="Manual Cold" value={leadsLoading ? "..." : teamStats.reduce((sum, t) => sum + (t.manualCold || 0), 0)} color="bg-blue-400" />
+<SummaryCard title="Manual Invalid" value={leadsLoading ? "..." : teamStats.reduce((sum, t) => sum + (t.manualInvalid || 0), 0)} color="bg-blue-400" />
 
       </div>
 
@@ -208,6 +257,11 @@ export default function AdminDashboard() {
               <th className="p-2">Warm (Manual)</th>
               <th className="p-2">Cold (Auto)</th>
               <th className="p-2">Cold (Manual)</th>
+              <th className="p-2">Junk (Auto)</th>
+              <th className="p-2">Junk (Manual)</th>
+              <th className="p-2">Invalid (Auto)</th>
+              <th className="p-2">Invalid (Manual)</th>
+
               <th className="p-2">Score</th>
             </tr>
           </thead>
@@ -228,6 +282,10 @@ export default function AdminDashboard() {
                 <td className="p-2 text-center">{getStat(t, 'manualWarm')}</td>
                 <td className="p-2 text-center">{getStat(t, 'autoCold')}</td>
                 <td className="p-2 text-center">{getStat(t, 'manualCold')}</td>
+                <td className="p-2 text-center">{getStat(t, 'autoJunk')}</td>
+                <td className="p-2 text-center">{getStat(t, 'manualJunk')}</td>
+                <td className="p-2 text-center">{getStat(t, 'autoInvalid')}</td>
+                <td className="p-2 text-center">{getStat(t, 'manualInvalid')}</td>
                 <td className="p-2 text-center">{getStat(t, 'score')}</td>
               </tr>
               
@@ -254,11 +312,24 @@ export default function AdminDashboard() {
               <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'manualWarm'), 0)}</td>
               <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'autoCold'), 0)}</td>
               <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'manualCold'), 0)}</td>
+              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'autoJunk'), 0)}</td>
+              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'manualJunk'), 0)}</td>
+              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'autoInvalid'), 0)}</td>
+              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'manualInvalid'), 0)}</td>
               <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'score'), 0)}</td>
             </tr>
           </tbody>
         </table>
       </div>
+      <div className="flex justify-between items-center mb-4">
+  
+  <button
+    onClick={exportLeaderboardToExcel}
+    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+  >
+    📥 Download Excel
+  </button>
+</div>
 
       {/* Chart Toggles */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-10 mb-6">

@@ -256,11 +256,13 @@ export default function AutoLeadsSection({ email }) {
   });
 
   // Calculate quality counts
-  const qualityCounts = { WIP: 0, Warm: 0, Cold: 0 };
+  const qualityCounts = { WIP: 0, Warm: 0, Cold: 0 , Junk: 0, Invalid: 0};
   leads.forEach(l => {
     if (l["Lead Quality"] === "WIP") qualityCounts.WIP++;
     else if (l["Lead Quality"] === "Warm") qualityCounts.Warm++;
     else if (l["Lead Quality"] === "Cold") qualityCounts.Cold++;
+    else if (l["Lead Quality"] === "Junk") qualityCounts.Junk++;
+    else if (l["Lead Quality"] === "Invalid") qualityCounts.Invalid++;
   });
 
   // Get unique projects for dropdown, including "Other" if there are non-main projects
@@ -293,6 +295,8 @@ export default function AutoLeadsSection({ email }) {
           <option value="WIP">WIP</option>
           <option value="Warm">Warm</option>
           <option value="Cold">Cold</option>
+          <option value="Junk">Junk</option>
+          <option value="Invalid">Invalid</option>
         </select>
         <select onChange={e => handleFilterChange("source", e.target.value)} className="w-full mb-3 p-2 border rounded">
           <option value="">Source</option>
@@ -317,6 +321,8 @@ export default function AutoLeadsSection({ email }) {
           <div className="bg-red-100 text-red-700 px-4 py-2 rounded font-bold">WIP: {qualityCounts.WIP}</div>
           <div className="bg-yellow-100 text-yellow-700 px-4 py-2 rounded font-bold">Warm: {qualityCounts.Warm}</div>
           <div className="bg-blue-100 text-blue-700 px-4 py-2 rounded font-bold">Cold: {qualityCounts.Cold}</div>
+          <div className="bg-gray-100 text-gray-700 px-4 py-2 rounded font-bold">Junk: {qualityCounts.Junk}</div>
+          <div className="bg-red-100 text-red-700 px-4 py-2 rounded font-bold">Invalid: {qualityCounts.Invalid}</div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filteredLeads.map((lead, index) => {
@@ -325,6 +331,10 @@ export default function AutoLeadsSection({ email }) {
             ? "bg-red-500"
             : lead["Lead Quality"] === "Warm"
             ? "bg-yellow-400"
+            : lead["Lead Quality"] === "Junk"
+            ? "bg-gray-400"
+            : lead["Lead Quality"] === "Invalid"
+            ? "bg-red-400"
             : "bg-blue-500";
 
           return (
@@ -375,6 +385,8 @@ export default function AutoLeadsSection({ email }) {
                         <option value="WIP">WIP</option>
                       <option value="Warm">Warm</option>
                       <option value="Cold">Cold</option>
+                      <option value="Junk">Junk</option>
+                      <option value="Invalid">Invalid</option>
                     </select>
                   </div>
                   {[1, 2, 3, 4, 5].map(n => (

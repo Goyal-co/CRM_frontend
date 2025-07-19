@@ -127,11 +127,13 @@ export default function ManualLeadsSection({ email }) {
   const totalPages = Math.ceil(leads.length / leadsPerPage);
 
   // Calculate quality counts
-  const qualityCounts = { WIP: 0, Warm: 0, Cold: 0 };
+  const qualityCounts = { WIP: 0, Warm: 0, Cold: 0 , Junk: 0, Invalid: 0};
   leads.forEach(l => {
     if (l["Lead Quality"] === "WIP") qualityCounts.WIP++;
     else if (l["Lead Quality"] === "Warm") qualityCounts.Warm++;
     else if (l["Lead Quality"] === "Cold") qualityCounts.Cold++;
+    else if (l["Lead Quality"] === "Junk") qualityCounts.Junk++;
+    else if (l["Lead Quality"] === "Invalid") qualityCounts.Invalid++;
   });
 
   return (
@@ -153,6 +155,8 @@ export default function ManualLeadsSection({ email }) {
           <div className="bg-red-100 text-red-700 px-4 py-2 rounded font-bold">WIP: {qualityCounts.WIP}</div>
           <div className="bg-yellow-100 text-yellow-700 px-4 py-2 rounded font-bold">Warm: {qualityCounts.Warm}</div>
           <div className="bg-blue-100 text-blue-700 px-4 py-2 rounded font-bold">Cold: {qualityCounts.Cold}</div>
+          <div className="bg-gray-100 text-gray-700 px-4 py-2 rounded font-bold">Junk: {qualityCounts.Junk}</div>
+          <div className="bg-red-100 text-red-700 px-4 py-2 rounded font-bold">Invalid: {qualityCounts.Invalid}</div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <select
@@ -185,6 +189,8 @@ export default function ManualLeadsSection({ email }) {
             <option value="WIP">WIP</option>
             <option value="Warm">Warm</option>
             <option value="Cold">Cold</option>
+            <option value="Junk">Junk</option>
+            <option value="Invalid">Invalid</option>
           </select>
           <input type="text" placeholder="Feedback 1" value={newLead.feedback1} onChange={(e) => handleInputChange("feedback1", e.target.value)} className="border border-blue-200 rounded px-3 py-2" />
         </div>
@@ -254,7 +260,9 @@ export default function ManualLeadsSection({ email }) {
                         <option value="WIP">WIP</option>
                         <option value="Warm">Warm</option>
                         <option value="Cold">Cold</option>
-                      </select>
+                        <option value="Junk">Junk</option>
+                        <option value="Invalid">Invalid</option>
+                        </select>
                     ) : lead["Lead Quality"]}
                   </td>
                   <td className="p-2">
