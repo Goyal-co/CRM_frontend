@@ -3,7 +3,7 @@ import { db } from './firebase-config.js';
 import { doc, getDoc, setDoc, collection, addDoc, getDocs } from 'firebase/firestore';
 
 // Fallback API URL if environment variable is not set
-const API_URL = import.meta.env.VITE_API_URL || 'https://pratham-server.onrender.com';
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.goyalhariyanacrm.in/';
 
 console.log('PitchPal using API URL:', API_URL);
 

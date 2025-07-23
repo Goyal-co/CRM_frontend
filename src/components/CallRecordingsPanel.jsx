@@ -225,7 +225,7 @@ export default function CallRecordingsPanel() {
     try {
       setLoading(true);
       // First fetch call recordings
-      const callsResponse = await fetch('https://pratham-server.onrender.com/api/call-recordings');
+      const callsResponse = await fetch('https://api.goyalhariyanacrm.in/api/call-recordings');
       const callsData = await callsResponse.json();
       setCalls(callsData.recordings || []);
       // Always use Google Apps Script for leads data
@@ -260,7 +260,7 @@ export default function CallRecordingsPanel() {
   const triggerAnalysis = async (docId) => {
     setAnalyzingId(docId);
     try {
-      await fetch('https://pratham-server.onrender.com/api/analyze-call', {
+      await fetch('https://api.goyalhariyanacrm.in/api/analyze-call', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ docId })

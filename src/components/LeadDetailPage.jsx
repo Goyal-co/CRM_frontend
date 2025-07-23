@@ -10,7 +10,7 @@ export default function LeadDetailPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    axios.get('https://pratham-server.onrender.com/api/leads')
+    axios.get('https://api.goyalhariyanacrm.in/api/leads')
       .then(res => {
         const fullEmail = decodeURIComponent(email);             // sahil.bng@goyalco.com
         const username = fullEmail.split('@')[0];                // sahil.bng

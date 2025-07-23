@@ -5,7 +5,7 @@ export default function LeadsTable({ email, isAdmin }) {
   const [leads, setLeads] = useState([]);
 
   useEffect(() => {
-    axios.get("https://pratham-server.onrender.com/api/leads").then((res) => {
+    axios.get("https://api.goyalhariyanacrm.in/api/leads").then((res) => {
       const filtered = isAdmin
         ? res.data
         : res.data.filter((lead) => lead.assignedTo === email);

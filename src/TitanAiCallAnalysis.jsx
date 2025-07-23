@@ -8,7 +8,7 @@ export default function TitanAiCallAnalysis() {
     const fetchAndAggregate = async () => {
       setLoading(true);
       try {
-        const res = await fetch("https://pratham-server.onrender.com/api/call-recordings");
+        const res = await fetch("https://api.goyalhariyanacrm.in/api/call-recordings");
         const data = await res.json();
         const calls = Array.isArray(data.recordings) ? data.recordings : [];
         // Aggregate by agent

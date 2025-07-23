@@ -19,7 +19,7 @@ export default function TitanBrainPage() {
 
   const deleteEntry = async (id) => {
     try {
-      await fetch(`http://localhost:5000/api/admin/wrong-entries/${id}`, {
+      await fetch(`https://api.goyalhariyanacrm.in/api/admin/wrong-entries/${id}`, {
         method: "DELETE",
       });
       setEntries((prev) => prev.filter((e) => e._id !== id));
