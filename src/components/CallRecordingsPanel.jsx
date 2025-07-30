@@ -21,21 +21,8 @@ const formatDuration = (seconds) => {
 
 // Agent name mapping (phone number to name)
 const agentNameMap = {
-  '+919686602879': 'Pratham',
-  '+919999999999': 'Srinivas',
-  '+917777777777': 'Sahil',
-  '+919014600977': 'Avula Rudra',
-  '+919620660817': 'Test Agent',
-  '919686602879': 'Pratham',
-  '919999999999': 'Srinivas',
-  '917777777777': 'Sahil',
-  '919014600977': 'Avula Rudra',
-  '919620660817': 'Test Agent',
-  '9686602879': 'Pratham',
-  '9999999999': 'Srinivas',
-  '7777777777': 'Sahil',
-  '9014600977': 'Avula Rudra',
-  '9620660817': 'Test Agent',
+  '+918871103745': 'Sanjita',
+  '+918147701373': 'Krithika',
   // Add more mappings as needed
 };
 
