@@ -21,7 +21,7 @@ export default function AdminDashboard() {
   const [showLine, setShowLine] = useState(false);
   const [showPie, setShowPie] = useState(false);
   const scriptId = "AKfycbznX9Q-zsf-Trlal1aBSn4WPngHIOeBAycoI8XrmzKUq85aNQ-Mwk0scn86ty-4gsjA";
-  const pieColors = ["#ef4444", "#facc15", "#3b82f6"];
+  const pieColors = ["#ef4444", "#facc15", "#3b82f6", "#8b5cf6", "#ec4899", "#10b981"];
   const [leadsLoading, setLeadsLoading] = useState(true);
   const [autoLeadsCount, setAutoLeadsCount] = useState(0);
   const [manualLeadsCount, setManualLeadsCount] = useState(0);
@@ -48,12 +48,15 @@ export default function AdminDashboard() {
   const sortedTeamStats = [...teamStats].sort((a, b) => (getStat(b, 'score')) - (getStat(a, 'score')));
 
   // Calculate quality counts for each member (frontend fallback)
-  const teamStatsWithQuality = sortedTeamStats.map(member => {
-    const wip = getStat(member, 'wip');
-    const warm = getStat(member, 'warm');
-    const cold = getStat(member, 'cold');
-    return { ...member, wip, warm, cold };
-  });
+  const teamStatsWithQuality = sortedTeamStats.map(member => ({
+    ...member,
+    wip: getStat(member, 'wip'),
+    warm: getStat(member, 'warm'),
+    cold: getStat(member, 'cold'),
+    rnr: getStat(member, 'rnr'),
+    junk: getStat(member, 'junk'),
+    invalid: getStat(member, 'invalid')
+  }));
   
 
   // Note: Cross-Origin-Opener-Policy warnings in the browser console are unrelated to this dashboard logic and can be ignored unless you are using window.open or window.postMessage between different origins.
@@ -173,10 +176,18 @@ export default function AdminDashboard() {
       "Warm (Manual)": getStat(member, 'manualWarm'),
       "Cold (Auto)": getStat(member, 'autoCold'),
       "Cold (Manual)": getStat(member, 'manualCold'),
+      "RNR (Auto)": getStat(member, 'autoRNR'),
+      "RNR (Manual)": getStat(member, 'manualRNR'),
       "Junk (Auto)": getStat(member, 'autoJunk'),
       "Junk (Manual)": getStat(member, 'manualJunk'),
       "Invalid (Auto)": getStat(member, 'autoInvalid'),
       "Invalid (Manual)": getStat(member, 'manualInvalid'),
+      // "Lead Quality - WIP": getStat(member, 'wip'),
+      // "Lead Quality - Warm": getStat(member, 'warm'),
+      // "Lead Quality - Cold": getStat(member, 'cold'),
+      // "Lead Quality - RNR": getStat(member, 'rnr'),
+      // "Lead Quality - Junk": getStat(member, 'junk'),
+      // "Lead Quality - Invalid": getStat(member, 'invalid'),
       "Score": getStat(member, 'score')
     }));
   
@@ -257,10 +268,18 @@ export default function AdminDashboard() {
               <th className="p-2">Warm (Manual)</th>
               <th className="p-2">Cold (Auto)</th>
               <th className="p-2">Cold (Manual)</th>
+              <th className="p-2">RNR (Auto)</th>
+              <th className="p-2">RNR (Manual)</th>
               <th className="p-2">Junk (Auto)</th>
               <th className="p-2">Junk (Manual)</th>
               <th className="p-2">Invalid (Auto)</th>
               <th className="p-2">Invalid (Manual)</th>
+              {/* <th className="p-2">Lead Quality - WIP</th>
+              <th className="p-2">Lead Quality - Warm</th>
+              <th className="p-2">Lead Quality - Cold</th>
+              <th className="p-2">Lead Quality - RNR</th>
+              <th className="p-2">Lead Quality - Junk</th>
+              <th className="p-2">Lead Quality - Invalid</th> */}
 
               <th className="p-2">Score</th>
             </tr>
@@ -284,8 +303,16 @@ export default function AdminDashboard() {
                 <td className="p-2 text-center">{getStat(t, 'manualCold')}</td>
                 <td className="p-2 text-center">{getStat(t, 'autoJunk')}</td>
                 <td className="p-2 text-center">{getStat(t, 'manualJunk')}</td>
+                <td className="p-2 text-center">{getStat(t, 'autoRNR')}</td>
+                <td className="p-2 text-center">{getStat(t, 'manualRNR')}</td>
                 <td className="p-2 text-center">{getStat(t, 'autoInvalid')}</td>
                 <td className="p-2 text-center">{getStat(t, 'manualInvalid')}</td>
+                {/* <td className="p-2 text-center font-semibold text-blue-600">{getStat(t, 'wip')}</td>
+                <td className="p-2 text-center font-semibold text-yellow-600">{getStat(t, 'warm')}</td>
+                <td className="p-2 text-center font-semibold text-blue-400">{getStat(t, 'cold')}</td>
+                <td className="p-2 text-center font-semibold text-purple-500">{getStat(t, 'rnr')}</td>
+                <td className="p-2 text-center font-semibold text-red-500">{getStat(t, 'junk')}</td>
+                <td className="p-2 text-center font-semibold text-gray-500">{getStat(t, 'invalid')}</td> */}
                 <td className="p-2 text-center">{getStat(t, 'score')}</td>
               </tr>
               
@@ -314,8 +341,16 @@ export default function AdminDashboard() {
               <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'manualCold'), 0)}</td>
               <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'autoJunk'), 0)}</td>
               <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'manualJunk'), 0)}</td>
+              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'autoRNR'), 0)}</td>
+              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'manualRNR'), 0)}</td>
               <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'autoInvalid'), 0)}</td>
               <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'manualInvalid'), 0)}</td>
+              {/* <td className="p-2 text-center font-semibold text-blue-600">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'wip'), 0)}</td>
+              <td className="p-2 text-center font-semibold text-yellow-600">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'warm'), 0)}</td>
+              <td className="p-2 text-center font-semibold text-blue-400">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'cold'), 0)}</td>
+              <td className="p-2 text-center font-semibold text-purple-500">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'rnr'), 0)}</td>
+              <td className="p-2 text-center font-semibold text-red-500">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'junk'), 0)}</td>
+              <td className="p-2 text-center font-semibold text-gray-500">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'invalid'), 0)}</td> */}
               <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'score'), 0)}</td>
             </tr>
           </tbody>
@@ -375,14 +410,43 @@ export default function AdminDashboard() {
 
       {showPie && (
         <ChartWrapper>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={400}>
             <PieChart>
-              <Pie data={qualityDistribution} dataKey="value" nameKey="name" outerRadius={100} label>
-                {qualityDistribution.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
+              <Pie
+                data={[
+                  { name: 'WIP', value: teamStats.reduce((sum, t) => sum + getStat(t, 'totalWIP'), 0) },
+                  { name: 'Warm', value: teamStats.reduce((sum, t) => sum + getStat(t, 'totalWarm'), 0) },
+                  { name: 'Cold', value: teamStats.reduce((sum, t) => sum + getStat(t, 'totalCold'), 0) },
+                  { name: 'RNR', value: teamStats.reduce((sum, t) => sum + getStat(t, 'totalRNR'), 0) },
+                  { name: 'Junk', value: teamStats.reduce((sum, t) => sum + getStat(t, 'totalJunk'), 0) },
+                  { name: 'Invalid', value: teamStats.reduce((sum, t) => sum + getStat(t, 'totalInvalid'), 0) },
+                ]}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={100}
+                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+              >
+                {pieColors.map((color, i) => (
+                  <Cell key={`cell-${i}`} fill={color} />
                 ))}
               </Pie>
-              <Tooltip />
+              <Tooltip 
+                formatter={(value, name, props) => {
+                  const total = teamStats.reduce((sum, t) => {
+                    return sum + 
+                      getStat(t, 'totalWIP') + 
+                      getStat(t, 'totalWarm') + 
+                      getStat(t, 'totalCold') + 
+                      getStat(t, 'totalRNR') + 
+                      getStat(t, 'totalJunk') + 
+                      getStat(t, 'totalInvalid');
+                  }, 0);
+                  const percentage = total > 0 ? (value / total * 100).toFixed(1) + '%' : '0%';
+                  return [`${name}: ${value} (${percentage})`, name];
+                }}
+              />
               <Legend />
             </PieChart>
           </ResponsiveContainer>
