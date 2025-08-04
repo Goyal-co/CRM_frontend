@@ -348,6 +348,7 @@ export default function AutoLeadsSection({ email }) {
                 <div>
                   <h4 className="font-semibold text-lg">{lead["Name"]}</h4>
                   <p className="text-sm text-gray-500">{lead["Project"]}</p>
+                  <p className="text-sm text-blue-600 font-medium">📱 {lead["Phone"] || 'No phone number'}</p>
                   <div className="flex items-center gap-2 mt-1">
                     <span className={`text-white text-xs px-2 py-1 rounded ${qualityColor}`}>
                       {lead["Lead Quality"]}
