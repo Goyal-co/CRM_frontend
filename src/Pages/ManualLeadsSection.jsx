@@ -22,16 +22,15 @@ export default function ManualLeadsSection({ email }) {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
-  const [dateFilter, setDateFilter] = useState('');
   const leadsPerPage = 10;
 
   // Change page
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
-  // Reset to first page when filters change
+  // Reset to first page when search term changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, dateFilter]);
+  }, [searchTerm]);
 
   const scriptUrl = `https://script.google.com/macros/s/AKfycbznX9Q-zsf-Trlal1aBSn4WPngHIOeBAycoI8XrmzKUq85aNQ-Mwk0scn86ty-4gsjA/exec`;
 
@@ -251,22 +250,21 @@ export default function ManualLeadsSection({ email }) {
     fetchManualLeads();
   }, []);
 
-  // Filter leads based on search term and date
+  // Filter leads based on search term
   const filteredLeads = leads.filter(lead => {
-    // Search term filter
-    const matchesSearch = !searchTerm || 
-      (lead['Name'] && lead['Name'].toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (lead['Phone Number'] && lead['Phone Number'].includes(searchTerm)) ||
-      (lead['Project'] && lead['Project'].toLowerCase().includes(searchTerm.toLowerCase()));
+    // If no search term, include all leads
+    if (!searchTerm) return true;
     
-    // Date filter (if date is selected)
-    let matchesDate = true;
-    if (dateFilter) {
-      const leadDate = lead['Timestamp'] || lead['Date Added'] || '';
-      matchesDate = leadDate.includes(dateFilter);
-    }
+    const searchLower = searchTerm.toLowerCase();
     
-    return matchesSearch && matchesDate;
+    // Safely check each field with null/undefined checks
+    const nameMatch = lead['Name']?.toLowerCase().includes(searchLower) || false;
+    const phoneMatch = lead['Phone Number']?.toString().includes(searchTerm) || false;
+    const projectMatch = lead['Project']?.toLowerCase().includes(searchLower) || false;
+    const lookingForMatch = lead['Looking For']?.toLowerCase().includes(searchLower) || false;
+    const leadQualityMatch = lead['Lead Quality']?.toLowerCase().includes(searchLower) || false;
+    
+    return nameMatch || phoneMatch || projectMatch || lookingForMatch || leadQualityMatch;
   });
 
   // Get current leads for pagination
@@ -362,45 +360,22 @@ export default function ManualLeadsSection({ email }) {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
           <h3 className="text-lg font-semibold text-blue-900">📋 Manual Leads List</h3>
           
-          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-            <div className="relative flex-grow">
-              <input
-                type="text"
-                placeholder="Search by name, phone, or project..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm('')}
-                  className="absolute right-2.5 top-2.5 text-gray-400 hover:text-gray-600"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-            
-            <div className="relative">
-              <input
-                type="date"
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-              {dateFilter && (
-                <button
-                  onClick={() => setDateFilter('')}
-                  className="absolute right-2.5 top-2.5 text-gray-400 hover:text-gray-600"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-            
-            <div className="text-sm text-gray-500 flex items-center">
-              {filteredLeads.length} {filteredLeads.length === 1 ? 'lead' : 'leads'} found
-            </div>
+          <div className="relative w-full md:w-96">
+            <input
+              type="text"
+              placeholder="Search by name, phone, project, or quality..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-2.5 top-2.5 text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            )}
           </div>
         </div>
 
