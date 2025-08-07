@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { formatDateForInput, formatDateForBackend } from "../utils/leadUtils";
 
 export default function AutoLeadsSection({ email }) {
   const [leads, setLeads] = useState([]);
@@ -44,33 +45,127 @@ export default function AutoLeadsSection({ email }) {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
-  const handleInputChange = (index, key, value) => {
-    const updated = [...leads];
-    updated[index][key] = value;
-    setLeads(updated);
+  const handleInputChange = (leadId, key, value) => {
+    setLeads(prevLeads => {
+      return prevLeads.map(lead => {
+        if (lead['Lead ID'] === leadId) {
+          const updatedLead = { ...lead, [key]: value };
+          
+          // Handle site visit date changes
+          if (key === "Site Visit Date") {
+            // Format the date for storage if it's not empty
+            updatedLead[key] = value ? formatDateForBackend(value) : "";
+          }
+          
+          // Clear site visit date if site visit is set to "No"
+          if (key === "Site Visit?" && value === "No") {
+            updatedLead["Site Visit Date"] = "";
+          }
+          
+          // If site visit is set to "Yes" and no date is set, set a default date (tomorrow)
+          if (key === "Site Visit?" && value === "Yes" && !updatedLead["Site Visit Date"]) {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            updatedLead["Site Visit Date"] = formatDateForBackend(tomorrow);
+          }
+          
+          return updatedLead;
+        }
+        return lead;
+      });
+    });
   };
 
   const updateLead = async (lead) => {
-    const params = new URLSearchParams({
-      action: "updateLead",
-      leadId: lead["Lead ID"],
-      called: lead["Called?"] || "",
-      siteVisit: lead["Site Visit?"] || "",
-      booked: lead["Booked?"] || "",
-      quality: lead["Lead Quality"] || "",
-      feedback1: lead["Feedback 1"] || "",
-      feedback2: lead["Feedback 2"] || "",
-      feedback3: lead["Feedback 3"] || "",
-      feedback4: lead["Feedback 4"] || "",
-      feedback5: lead["Feedback 5"] || ""
-    });
-
     try {
-      await fetch(`${scriptUrl}?${params.toString()}`);
-      alert("Lead updated!");
+      // Prepare URL parameters for the update
+      const params = new URLSearchParams();
+      
+      // Add required parameters
+      params.append('updateLead', 'true');
+      params.append('leadId', lead["Lead ID"]);
+      params.append('sheetName', 'Leads');
+      
+      // Add all fields as URL parameters
+      const fields = [
+        { key: 'Called?', value: lead["Called?"] || '' },
+        { key: 'Site Visit?', value: lead["Site Visit?"] || 'No' },
+        { key: 'Booked?', value: lead["Booked?"] || '' },
+        { key: 'Lead Quality', value: lead["Lead Quality"] || '' }
+      ];
+      
+      // Add feedback fields
+      for (let i = 1; i <= 5; i++) {
+        const feedbackKey = `Feedback ${i}`;
+        fields.push({ 
+          key: feedbackKey, 
+          value: lead[feedbackKey] || '' 
+        });
+      }
+      
+      // Handle site visit date - format it properly for the backend
+      let dateValue = '';
+      if (lead["Site Visit?"] === 'Yes' && lead["Site Visit Date"]) {
+        dateValue = formatDateForBackend(lead["Site Visit Date"]);
+        console.log('Formatted site visit date for backend:', dateValue);
+      }
+      
+      // Always include the Site Visit Date field, even if empty
+      fields.push({ 
+        key: 'Site Visit Date', 
+        value: dateValue 
+      });
+      
+      // Add all fields to URL parameters
+      fields.forEach(field => {
+        if (field.value !== undefined && field.value !== null) {
+          // Encode the field name and value to handle special characters
+          params.append(encodeURIComponent(field.key), encodeURIComponent(field.value));
+        }
+      });
+      
+      console.log('Sending update with params:', params.toString());
+      
+      // Make the GET request with all parameters in the URL
+      const response = await fetch(`${scriptUrl}?${params.toString()}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      });
+      
+      // Parse the response
+      const responseText = await response.text();
+      let result;
+      
+      try {
+        result = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Failed to parse response:', responseText);
+        throw new Error(`Invalid JSON response: ${responseText}`);
+      }
+      
+      console.log('Update result:', result);
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      if (!result.success) {
+        throw new Error('Update failed: ' + (result.message || 'Unknown error'));
+      }
+      
+      // Refresh the leads after successful update
+      const refreshRes = await fetch(`${scriptUrl}?action=getLeads&email=${email}`);
+      const newLeads = await refreshRes.json();
+      setLeads(newLeads.reverse());
+      
+      alert('Lead updated successfully!');
+      return result;
     } catch (error) {
       console.error("Error updating lead:", error);
-      alert("Failed to update lead. Please try again.");
+      alert(`Failed to update lead: ${error.message}`);
+      throw error;
     }
   };
 
@@ -565,16 +660,65 @@ export default function AutoLeadsSection({ email }) {
               {isExpanded && (
                 <div className="mt-4 space-y-2 text-sm">
                   <div className="grid grid-cols-2 gap-2">
-                    <select value={lead["Called?"] || ""} onChange={(e) => handleInputChange(index, "Called?", e.target.value)} className="p-2 border rounded">
+                    <select 
+                      value={lead["Called?"] || ""} 
+                      onChange={(e) => handleInputChange(lead['Lead ID'], "Called?", e.target.value)} 
+                      className="p-2 border rounded"
+                    >
                       <option value="">Called?</option>
                       <option value="Yes">Yes</option>
                       <option value="No">No</option>
                     </select>
-                    <select value={lead["Site Visit?"] || ""} onChange={(e) => handleInputChange(index, "Site Visit?", e.target.value)} className="p-2 border rounded">
-                      <option value="">Site Visit?</option>
-                      <option value="Yes">Yes</option>
-                      <option value="No">No</option>
-                    </select>
+                    <div className="col-span-2">
+                      <select 
+                        value={lead["Site Visit?"] || ""} 
+                        onChange={(e) => {
+                          const leadId = lead['Lead ID'];
+                          handleInputChange(leadId, "Site Visit?", e.target.value);
+                          // Clear site visit date when changing from Yes to No/empty
+                          if (e.target.value !== "Yes") {
+                            handleInputChange(leadId, "Site Visit Date", "");
+                          } else if (e.target.value === "Yes" && !lead["Site Visit Date"]) {
+                            // Set default to today if switching to Yes and no date set
+                            handleInputChange(leadId, "Site Visit Date", new Date().toISOString().split('T')[0]);
+                          }
+                        }} 
+                        className="w-full p-2 border rounded"
+                      >
+                        <option value="">Site Visit?</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                      </select>
+                      {lead["Site Visit?"] === "Yes" && (
+                        <div className="mt-2">
+                          <label className="block text-xs text-gray-600 mb-1">Site Visit Date</label>
+                          <input
+                            type="date"
+                            value={formatDateForInput(lead["Site Visit Date"])}
+                            min={new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0]}
+                            onChange={(e) => {
+                              const selectedDate = e.target.value;
+                              const leadId = lead['Lead ID'];
+                              const today = new Date();
+                              const tomorrow = new Date(today);
+                              tomorrow.setDate(tomorrow.getDate() + 1);
+                              const minDate = tomorrow.toISOString().split('T')[0];
+                              
+                              if (selectedDate >= minDate) {
+                                handleInputChange(leadId, "Site Visit Date", selectedDate);
+                              } else {
+                                // Set to tomorrow's date if an invalid date is selected
+                                handleInputChange(leadId, "Site Visit Date", minDate);
+                                e.target.value = minDate;
+                                alert('Please select a future date for site visit');
+                              }
+                            }}
+                            className="w-full p-2 border rounded text-sm"
+                            required
+                          />
+                        </div>
+                      )}
+                    </div>
                     <select value={lead["Booked?"] || ""} onChange={(e) => handleInputChange(index, "Booked?", e.target.value)} className="p-2 border rounded">
                       <option value="">Booked?</option>
                       <option value="Yes">Yes</option>

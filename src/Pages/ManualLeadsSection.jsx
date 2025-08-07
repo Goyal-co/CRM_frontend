@@ -1,6 +1,11 @@
 import { useState, useEffect } from "react";
+import { 
+  getManualLeadsCount,
+  formatDateForInput,
+  formatDateForBackend 
+} from "../utils/leadUtils";
 
-export default function ManualLeadsSection({ email }) {
+function ManualLeadsSection({ email }) {
   const [leads, setLeads] = useState([]);
   const [editedValues, setEditedValues] = useState({});
   const [showDatePicker, setShowDatePicker] = useState({});
@@ -11,13 +16,14 @@ export default function ManualLeadsSection({ email }) {
     phone: "",
     lookingFor: "",
     siteVisit: "",
+    siteVisitDate: "",
     booked: "",
     feedback1: "",
     feedback2: "",
     feedback3: "",
     feedback4: "",
     feedback5: "",
-    leadQuality: "", // Add leadQuality to newLead state
+    leadQuality: "",
   });
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -73,50 +79,103 @@ export default function ManualLeadsSection({ email }) {
   };
 
   const handleSubmit = async () => {
-    if (!newLead.name || !newLead.phone || !newLead.project) {
-      alert("Name, Phone, and Project are required.");
-      return;
+    try {
+      // Basic validation
+      if (!newLead.project || !newLead.name || !newLead.phone) {
+        alert('Please fill in all required fields');
+        return;
+      }
+
+      // Validate site visit date if site visit is "Yes"
+      if (newLead.siteVisit === "Yes") {
+        if (!newLead.siteVisitDate) {
+          alert("Please select a site visit date.");
+          return;
+        }
+        
+        // Ensure the selected date is today or in the future
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Reset time part to compare dates only
+        const selectedDate = new Date(newLead.siteVisitDate);
+        selectedDate.setHours(0, 0, 0, 0);
+        
+        if (selectedDate < today) {
+          alert("Site visit date cannot be in the past. Please select today or a future date.");
+          return;
+        }
+      }
+
+      // Format the site visit date if needed
+      let formattedDate = '';
+      if (newLead.siteVisit === 'Yes' && newLead.siteVisitDate) {
+        const date = new Date(newLead.siteVisitDate);
+        if (!isNaN(date.getTime())) {
+          formattedDate = date.toISOString().split('T')[0];
+        }
+      }
+
+      // Format the data for the Google Apps Script
+      const formattedData = {
+        project: newLead.project,
+        name: newLead.name,
+        phone: newLead.phone,
+        lookingFor: newLead.lookingFor || '',
+        siteVisit: newLead.siteVisit || 'No',
+        siteVisitDate: formattedDate,
+        booked: newLead.booked || 'No',
+        leadQuality: newLead.leadQuality || 'WIP',
+        feedback1: newLead.feedback1 || '',
+        feedback2: newLead.feedback2 || '',
+        feedback3: newLead.feedback3 || '',
+        feedback4: newLead.feedback4 || '',
+        feedback5: newLead.feedback5 || ''
+      };
+      
+      console.log('Submitting new lead with data:', formattedData);
+
+      const leadId = "ML" + Date.now().toString().slice(-6);
+      const leadData = {
+        action: "addManualLead",
+        leadId,
+        email,
+        project: formattedData.project,
+        name: formattedData.name,
+        phone: formattedData.phone,
+        lookingFor: formattedData.lookingFor,
+        siteVisit: formattedData.siteVisit,
+        siteVisitDate: formattedData.siteVisitDate,
+        booked: formattedData.booked,
+        feedback1: formattedData.feedback1,
+        feedback2: formattedData.feedback2,
+        feedback3: formattedData.feedback3,
+        feedback4: formattedData.feedback4,
+        feedback5: formattedData.feedback5,
+        leadQuality: formattedData.leadQuality
+      };
+
+      const params = new URLSearchParams(leadData);
+
+      await fetch(`${scriptUrl}?${params.toString()}`);
+      setNewLead({
+        project: "",
+        name: "",
+        phone: "",
+        lookingFor: "",
+        siteVisit: "",
+        siteVisitDate: "",
+        booked: "",
+        feedback1: "",
+        feedback2: "",
+        feedback3: "",
+        feedback4: "",
+        feedback5: "",
+        leadQuality: "",
+      });
+      setCurrentPage(1);
+      fetchManualLeads();
+    } catch (error) {
+      console.error("Error submitting new lead:", error);
     }
-
-    const leadId = "ML" + Date.now().toString().slice(-6);
-    // Create a new object with the correct field names for the backend
-    const leadData = {
-      action: "addManualLead",
-      leadId,
-      email,
-      project: newLead.project,
-      name: newLead.name,
-      phone: newLead.phone,
-      lookingFor: newLead.lookingFor, // This will be mapped to "Looking For" in the backend
-      siteVisit: newLead.siteVisit,
-      booked: newLead.booked,
-      feedback1: newLead.feedback1,
-      feedback2: newLead.feedback2,
-      feedback3: newLead.feedback3,
-      feedback4: newLead.feedback4,
-      feedback5: newLead.feedback5,
-      leadQuality: newLead.leadQuality
-    };
-
-    const params = new URLSearchParams(leadData);
-
-    await fetch(`${scriptUrl}?${params.toString()}`);
-    setNewLead({
-      project: "",
-      name: "",
-      phone: "",
-      lookingFor: "",
-      siteVisit: "",
-      booked: "",
-      feedback1: "",
-      feedback2: "",
-      feedback3: "",
-      feedback4: "",
-      feedback5: "",
-      leadQuality: "",
-    });
-    setCurrentPage(1);
-    fetchManualLeads();
   };
 
   const [expandedFeedback, setExpandedFeedback] = useState({});
@@ -129,35 +188,48 @@ export default function ManualLeadsSection({ email }) {
     }));
   };
 
+  // Date formatting functions are now imported from leadUtils.js
+
   const handleEditInput = (leadId, field, value) => {
-    setEditedValues((prev) => {
+    setEditedValues(prev => {
       const newValues = {
         ...prev,
         [leadId]: {
           ...prev[leadId],
-          [field]: value,
+          [field]: value
         },
       };
 
-      // Show date picker when site visit is set to "Yes"
-      if (field === 'siteVisit' && value === 'Yes') {
-        setShowDatePicker(prev => ({
-          ...prev,
-          [leadId]: true
-        }));
-        
-        // Set default date to today if not already set
-        if (!newValues[leadId]?.siteVisitDate) {
+      // Handle site visit changes
+      if (field === 'siteVisit') {
+        if (value === 'Yes') {
+          // Show date picker when site visit is set to "Yes"
+          setShowDatePicker(prev => ({
+            ...prev,
+            [leadId]: true
+          }));
+          
+          // Set default date to tomorrow if not already set
+          if (!newValues[leadId]?.siteVisitDate) {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            newValues[leadId] = {
+              ...newValues[leadId],
+              siteVisitDate: formatDateForInput(tomorrow.toISOString().split('T')[0])
+            };
+          }
+        } else {
+          // If setting to No or empty, hide date picker and clear date
+          setShowDatePicker(prev => ({
+            ...prev,
+            [leadId]: false
+          }));
+          
           newValues[leadId] = {
             ...newValues[leadId],
-            siteVisitDate: new Date().toISOString().split('T')[0]
+            siteVisitDate: ''
           };
         }
-      } else if (field === 'siteVisit' && value === 'No') {
-        setShowDatePicker(prev => ({
-          ...prev,
-          [leadId]: false
-        }));
       }
 
       return newValues;
@@ -166,61 +238,85 @@ export default function ManualLeadsSection({ email }) {
 
   const handleUpdate = async (leadId) => {
     try {
-      const fields = editedValues[leadId];
-      if (!fields) {
+      const editedData = { ...(editedValues[leadId] || {}) };
+      
+      if (Object.keys(editedData).length === 0) {
         throw new Error('No fields to update');
       }
-
-      // Create update object with all fields
-      const updates = {
-        'Site Visit?': fields.siteVisit || '',
-        'Booked?': fields.booked || '',
-        'Lead Quality': fields.leadQuality || '',
-        'Looking For': fields.lookingFor || '',
-        'Feedback 1': fields.feedback1 || '',
-        'Feedback 2': fields.feedback2 || '',
-        'Feedback 3': fields.feedback3 || '',
-        'Feedback 4': fields.feedback4 || '',
-        'Feedback 5': fields.feedback5 || ''
-      };
-
-      // Add site visit date if site visit is "Yes"
-      if (fields.siteVisit === 'Yes' && fields.siteVisitDate) {
-        updates['Site Visit Date'] = fields.siteVisitDate;
-      } else if (fields.siteVisit === 'No') {
-        updates['Site Visit Date'] = '';
+      
+      // Format date fields before sending to backend
+      if (editedData.siteVisitDate) {
+        // Ensure the date is in the correct format for the backend
+        const formattedDate = formatDateForBackend(editedData.siteVisitDate);
+        if (formattedDate) {
+          editedData.siteVisitDate = formattedDate;
+        } else {
+          // If date formatting fails, keep the original value and let the backend handle it
+          console.warn('Could not format date, sending as-is:', editedData.siteVisitDate);
+        }
+      }
+      
+      // If site visit is set to 'No', clear the date
+      if (editedData.siteVisit === 'No') {
+        editedData.siteVisitDate = '';
       }
 
-      const updateData = {
-        leadId,
-        action: 'updateManualLead',
-        updates: JSON.stringify(updates)
-      };
-
-      // Send all updates in a single request
-      const params = new URLSearchParams(updateData);
-      const response = await fetch(`${scriptUrl}?${params}`);
+      // Prepare URL parameters for the update
+      const params = new URLSearchParams();
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, ${errorText}`);
-      }
-
-      const result = await response.text();
+      // Add required parameters
+      params.append('updateLead', 'true');
+      params.append('leadId', leadId);
+      params.append('sheetName', 'Manual Leads');
       
-      // Check for error in response
-      let parsedResult;
-      try {
-        parsedResult = JSON.parse(result);
-      } catch (e) {
-        // If not JSON, treat as plain text
-        if (result.toLowerCase().includes('error')) {
-          throw new Error(result);
+      // Add all edited fields to the parameters with proper column names
+      Object.entries(editedData).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          // Convert field names to match Google Sheet column names
+          let fieldName = key;
+          if (key === 'siteVisit') fieldName = 'Site Visit?';
+          if (key === 'siteVisitDate') fieldName = 'Site Visit Date';
+          if (key === 'booked') fieldName = 'Booked?';
+          if (key === 'leadQuality') fieldName = 'Lead Quality';
+          if (key === 'lookingFor') fieldName = 'Looking For';
+          
+          params.append(fieldName, value);
+        }
+      });
+      
+      // Add feedback fields if they exist
+      for (let i = 1; i <= 5; i++) {
+        const feedbackKey = `feedback${i}`;
+        if (editedData[feedbackKey] !== undefined && editedData[feedbackKey] !== '') {
+          params.append(`Feedback ${i}`, editedData[feedbackKey]);
         }
       }
 
-      if (parsedResult && parsedResult.error) {
-        throw new Error(parsedResult.error);
+      const url = `${scriptUrl}?${params.toString()}`;
+      console.log('Sending update to URL:', url);
+      
+      // Make the GET request with the constructed URL
+      const response = await fetch(url);
+      
+      // Parse the response
+      const responseText = await response.text();
+      let result;
+      
+      try {
+        result = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Failed to parse response:', responseText);
+        throw new Error(`Invalid JSON response: ${responseText}`);
+      }
+      
+      console.log('Update result:', result);
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      if (!result.success) {
+        throw new Error('Update failed: ' + (result.message || 'Unknown error'));
       }
 
       // Clear the edited values for this lead
@@ -329,11 +425,39 @@ export default function ManualLeadsSection({ email }) {
             onChange={(e) => handleInputChange("lookingFor", e.target.value)} 
             className="border border-blue-200 rounded px-3 py-2" 
           />
-          <select value={newLead.siteVisit} onChange={(e) => handleInputChange("siteVisit", e.target.value)} className="border border-blue-200 rounded px-3 py-2">
-            <option value="">Site Visit?</option>
-            <option value="Yes">Yes</option>
-            <option value="No">No</option>
-          </select>
+          <div className="w-full">
+            <select 
+              value={newLead.siteVisit} 
+              onChange={(e) => {
+                handleInputChange("siteVisit", e.target.value);
+                // Clear site visit date when changing from Yes to No/empty
+                if (e.target.value !== "Yes") {
+                  handleInputChange("siteVisitDate", "");
+                } else if (e.target.value === "Yes" && !newLead.siteVisitDate) {
+                  // Set default to today if switching to Yes and no date set
+                  handleInputChange("siteVisitDate", new Date().toISOString().split('T')[0]);
+                }
+              }} 
+              className="w-full border border-blue-200 rounded px-3 py-2"
+            >
+              <option value="">Site Visit?</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+            {newLead.siteVisit === "Yes" && (
+              <div className="mt-2">
+                <label className="block text-xs text-gray-600 mb-1">Site Visit Date</label>
+                <input
+                  type="date"
+                  value={newLead.siteVisitDate}
+                  onChange={(e) => handleInputChange("siteVisitDate", e.target.value)}
+                  className="w-full p-2 border rounded text-sm"
+                  min={new Date().toISOString().split('T')[0]}
+                  required
+                />
+              </div>
+            )}
+          </div>
           <select value={newLead.booked} onChange={(e) => handleInputChange("booked", e.target.value)} className="border border-blue-200 rounded px-3 py-2">
             <option value="">Booked?</option>
             <option value="Yes">Yes</option>
@@ -389,6 +513,7 @@ export default function ManualLeadsSection({ email }) {
               <th className="p-2">Looking For?</th>
               <th className="p-2">Assignee</th>
               <th className="p-2">Site Visit?</th>
+              <th className="p-2">Site Visit Date</th>
               <th className="p-2">Booked?</th>
               <th className="p-2">Lead Quality</th>
               <th className="p-2">Feedback 1</th>
@@ -417,33 +542,89 @@ export default function ManualLeadsSection({ email }) {
                     {isEditable ? (
                       <div className="flex flex-col space-y-2">
                         <select 
-                          value={values.siteVisit || lead["Site Visit?"]} 
-                          onChange={(e) => handleEditInput(id, "siteVisit", e.target.value)} 
+                          value={values.siteVisit !== undefined ? values.siteVisit : (lead["Site Visit?"] || 'No')} 
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            handleEditInput(id, "siteVisit", value);
+                            
+                            // If setting to Yes and no date is set, set default to tomorrow
+                            if (value === 'Yes' && !values.siteVisitDate && !lead["Site Visit Date"]) {
+                              const tomorrow = new Date();
+                              tomorrow.setDate(tomorrow.getDate() + 1);
+                              const defaultDate = tomorrow.toISOString().split('T')[0];
+                              handleEditInput(id, "siteVisitDate", defaultDate);
+                            }
+                          }} 
                           className="border px-2 py-1 rounded"
                         >
                           <option value="No">No</option>
                           <option value="Yes">Yes</option>
                         </select>
                         {showDatePicker[id] && (
-                          <input
-                            type="date"
-                            value={values.siteVisitDate || lead["Site Visit Date"] || new Date().toISOString().split('T')[0]}
-                            onChange={(e) => handleEditInput(id, "siteVisitDate", e.target.value)}
-                            className="border px-2 py-1 rounded text-sm"
-                            min={new Date().toISOString().split('T')[0]}
-                          />
+                          <div className="mt-2">
+                            <label className="block text-xs text-gray-600 mb-1">Site Visit Date</label>
+                            <input
+                              type="date"
+                              value={values.siteVisitDate !== undefined 
+                                ? values.siteVisitDate 
+                                : (lead["Site Visit Date"] 
+                                    ? formatDateForInput(lead["Site Visit Date"]) 
+                                    : "")}
+                              min={new Date().toISOString().split('T')[0]}
+                              onChange={(e) => {
+                                const selectedDate = e.target.value;
+                                if (!selectedDate) {
+                                  // If date is cleared, set site visit to No
+                                  handleEditInput(id, "siteVisit", "No");
+                                  handleEditInput(id, "siteVisitDate", "");
+                                  return;
+                                }
+                                
+                                // Format the date to YYYY-MM-DD to ensure consistency
+                                const date = new Date(selectedDate);
+                                if (!isNaN(date.getTime())) {
+                                  const formattedDate = date.toISOString().split('T')[0];
+                                  handleEditInput(id, "siteVisitDate", formattedDate);
+                                } else {
+                                  // If date is invalid, use the raw value and let the validation handle it
+                                  handleEditInput(id, "siteVisitDate", selectedDate);
+                                }
+                              }}
+                              className="w-full p-2 border rounded text-sm"
+                              required
+                            />
+                          </div>
                         )}
                       </div>
                     ) : (
-                      <div>
-                        <div>{lead["Site Visit?"]}</div>
-                        {lead["Site Visit?"] === "Yes" && lead["Site Visit Date"] && (
-                          <div className="text-xs text-gray-500">
-                            {new Date(lead["Site Visit Date"]).toLocaleDateString()}
+                      <div className="flex flex-col">
+                        <div>{lead["Site Visit?"] || 'No'}</div>
+                        {lead["Site Visit Date"] && (
+                          <div className="text-xs text-gray-600">
+                            {new Date(lead["Site Visit Date"]).toLocaleDateString('en-IN', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })}
                           </div>
                         )}
                       </div>
                     )}
+                  </td>
+                  <td className="p-2">
+                    {values.siteVisitDate !== undefined 
+                      ? new Date(values.siteVisitDate).toLocaleDateString('en-IN', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        })
+                      : (lead["Site Visit Date"] 
+                          ? new Date(lead["Site Visit Date"]).toLocaleDateString('en-IN', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })
+                          : "-")}
                   </td>
                   <td className="p-2">
                     {isEditable ? (
@@ -498,6 +679,7 @@ export default function ManualLeadsSection({ email }) {
                       )}
                     </td>
                   ))}
+
                   <td className="p-2">
                     {isEditable && (
                       <button onClick={() => handleUpdate(id)} className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded">
@@ -584,6 +766,4 @@ export default function ManualLeadsSection({ email }) {
   );
 }
 
-export function getManualLeadsCount(leads) {
-  return Array.isArray(leads) ? leads.length : 0;
-}
+export default ManualLeadsSection;
