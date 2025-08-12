@@ -5,7 +5,7 @@ export default function LeaderboardPage() {
   const scriptUrl = "https://script.google.com/macros/s/AKfycbznX9Q-zsf-Trlal1aBSn4WPngHIOeBAycoI8XrmzKUq85aNQ-Mwk0scn86ty-4gsjA/exec";
 
   useEffect(() => {
-    fetch(`${scriptUrl}?action=getAdminStats`)
+    fetch(`${scriptUrl}?action=getAdminStats&dateRange=7d`)
       .then(res => res.json())
       .then(res => {
         const sortedData = [...(res.teamStats || [])].sort((a, b) => (b.score || 0) - (a.score || 0));
@@ -38,7 +38,7 @@ export default function LeaderboardPage() {
                   <th className="p-5">Name</th>
                   <th className="p-5">Leads</th>
                   <th className="p-5">Auto Leads</th>
-                  <th className="p-5">Manual Leads</th>
+                  {/* <th className="p-5">Manual Leads</th> */}
                   <th className="p-5">Site Visits</th>
                   <th className="p-5">Bookings</th>
                   <th className="p-5">Score</th>
@@ -51,7 +51,7 @@ export default function LeaderboardPage() {
                     <td className="p-5">{member.name}</td>
                     <td className="p-5">{(member.autoLeads || 0) + (member.manualLeads || 0)}</td>
                     <td className="p-5">{member.autoLeads || 0}</td>
-                    <td className="p-5">{member.manualLeads || 0}</td>
+                    {/* <td className="p-5">{member.manualLeads || 0}</td> */}
                     <td className="p-5">{member.siteVisits || 0}</td>
                     <td className="p-5">{member.bookings || 0}</td>
                     <td className="p-5">{member.score || 0}</td>
