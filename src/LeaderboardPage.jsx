@@ -7,7 +7,10 @@ export default function LeaderboardPage() {
   useEffect(() => {
     fetch(`${scriptUrl}?action=getAdminStats`)
       .then(res => res.json())
-      .then(res => setData(res.teamStats || []))
+      .then(res => {
+        const sortedData = [...(res.teamStats || [])].sort((a, b) => (b.score || 0) - (a.score || 0));
+        setData(sortedData);
+      })
       .catch(err => console.error("Leaderboard fetch failed", err));
   }, []);
 
@@ -38,16 +41,7 @@ export default function LeaderboardPage() {
                   <th className="p-5">Manual Leads</th>
                   <th className="p-5">Site Visits</th>
                   <th className="p-5">Bookings</th>
-                  <th className="p-5">WIP (Auto)</th>
-                  <th className="p-5">WIP (Manual)</th>
-                  <th className="p-5">Warm (Auto)</th>
-                  <th className="p-5">Warm (Manual)</th>
-                  <th className="p-5">Cold (Auto)</th>
-                  <th className="p-5">Cold (Manual)</th>
-                  <th className="p-5">Junk (Auto)</th>
-                  <th className="p-5">Junk (Manual)</th>
-                  <th className="p-5">Invalid (Auto)</th>
-                  <th className="p-5">Invalid (Manual)</th>
+                  <th className="p-5">Score</th>
                 </tr>
               </thead>
               <tbody>
@@ -60,16 +54,7 @@ export default function LeaderboardPage() {
                     <td className="p-5">{member.manualLeads || 0}</td>
                     <td className="p-5">{member.siteVisits || 0}</td>
                     <td className="p-5">{member.bookings || 0}</td>
-                    <td className="p-5">{member.autoWIP || 0}</td>
-                    <td className="p-5">{member.manualWIP || 0}</td>
-                    <td className="p-5">{member.autoWarm || 0}</td>
-                    <td className="p-5">{member.manualWarm || 0}</td>
-                    <td className="p-5">{member.autoCold || 0}</td>
-                    <td className="p-5">{member.manualCold || 0}</td>
-                    <td className="p-5">{member.autoJunk || 0}</td>
-                    <td className="p-5">{member.manualJunk || 0}</td>
-                    <td className="p-5">{member.autoInvalid || 0}</td>
-                    <td className="p-5">{member.manualInvalid || 0}</td>
+                    <td className="p-5">{member.score || 0}</td>
                     </tr>
                 ))}
               </tbody>

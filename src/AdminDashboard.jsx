@@ -253,27 +253,28 @@ export default function AdminDashboard() {
       {/* Leaderboard Table */}
       <div className="bg-white p-4 rounded-xl shadow">
         <h3 className="text-lg font-semibold mb-4">Team Leaderboard</h3>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
           <thead className="bg-gray-200">
             <tr>
-              <th className="p-2 text-left">Name</th>
-              <th className="p-2">Leads</th>
-              <th className="p-2">Auto Leads</th>
-              <th className="p-2">Manual Leads</th>
-              <th className="p-2">Site Visits</th>
-              <th className="p-2">Bookings</th>
-              <th className="p-2">WIP (Auto)</th>
-              <th className="p-2">WIP (Manual)</th>
-              <th className="p-2">Warm (Auto)</th>
-              <th className="p-2">Warm (Manual)</th>
-              <th className="p-2">Cold (Auto)</th>
-              <th className="p-2">Cold (Manual)</th>
-              <th className="p-2">RNR (Auto)</th>
-              <th className="p-2">RNR (Manual)</th>
-              <th className="p-2">Junk (Auto)</th>
-              <th className="p-2">Junk (Manual)</th>
-              <th className="p-2">Invalid (Auto)</th>
-              <th className="p-2">Invalid (Manual)</th>
+              <th className="p-3 text-left sticky left-0 bg-white z-10">Name</th>
+              <th className="p-3 whitespace-nowrap">Leads</th>
+              <th className="p-3 whitespace-nowrap">Auto Leads</th>
+              <th className="p-3 whitespace-nowrap">Manual Leads</th>
+              <th className="p-3 whitespace-nowrap">Site Visits</th>
+              <th className="p-3 whitespace-nowrap">Bookings</th>
+              <th className="p-3 whitespace-nowrap">WIP (Auto)</th>
+              <th className="p-3 whitespace-nowrap">WIP (Manual)</th>
+              <th className="p-3 whitespace-nowrap">Warm (Auto)</th>
+              <th className="p-3 whitespace-nowrap">Warm (Manual)</th>
+              <th className="p-3 whitespace-nowrap">Cold (Auto)</th>
+              <th className="p-3 whitespace-nowrap">Cold (Manual)</th>
+              <th className="p-3 whitespace-nowrap">RNR (Auto)</th>
+              <th className="p-3 whitespace-nowrap">RNR (Manual)</th>
+              <th className="p-3 whitespace-nowrap">Junk (Auto)</th>
+              <th className="p-3 whitespace-nowrap">Junk (Manual)</th>
+              <th className="p-3 whitespace-nowrap">Invalid (Auto)</th>
+              <th className="p-3 whitespace-nowrap">Invalid (Manual)</th>
               {/* <th className="p-2">Lead Quality - WIP</th>
               <th className="p-2">Lead Quality - Warm</th>
               <th className="p-2">Lead Quality - Cold</th>
@@ -281,45 +282,45 @@ export default function AdminDashboard() {
               <th className="p-2">Lead Quality - Junk</th>
               <th className="p-2">Lead Quality - Invalid</th> */}
 
-              <th className="p-2">Score</th>
+              <th className="p-3 whitespace-nowrap">Score</th>
             </tr>
           </thead>
           <tbody>
             {teamStatsWithQuality.map((t, i) => (
                 <tr key={i} className="border-t hover:bg-gray-50">
-                <td className="p-2">{t.name || '-'}</td>
-                <td className="p-2 text-center">
+                <td className="p-3 sticky left-0 bg-white z-10 font-medium">{t.name || '-'}</td>
+                <td className="p-3 text-center">
   {(getStat(t, 'autoLeads') || getStat(t, 'auto') || 0) + (getStat(t, 'manualLeads') || getStat(t, 'manual') || 0)}
 </td>
 <td className="p-2 text-center">{getStat(t, 'autoLeads') || getStat(t, 'auto') || 0}</td>
 <td className="p-2 text-center">{getStat(t, 'manualLeads') || getStat(t, 'manual') || 0}</td>
-                <td className="p-2 text-center">{getStat(t, 'siteVisits')}</td>
-                <td className="p-2 text-center">{getStat(t, 'bookings')}</td>
-                <td className="p-2 text-center">{getStat(t, 'autoWIP')}</td>
-                <td className="p-2 text-center">{getStat(t, 'manualWIP')}</td>
-                <td className="p-2 text-center">{getStat(t, 'autoWarm')}</td>
-                <td className="p-2 text-center">{getStat(t, 'manualWarm')}</td>
-                <td className="p-2 text-center">{getStat(t, 'autoCold')}</td>
-                <td className="p-2 text-center">{getStat(t, 'manualCold')}</td>
-                <td className="p-2 text-center">{getStat(t, 'autoJunk')}</td>
-                <td className="p-2 text-center">{getStat(t, 'manualJunk')}</td>
-                <td className="p-2 text-center">{getStat(t, 'autoRNR')}</td>
-                <td className="p-2 text-center">{getStat(t, 'manualRNR')}</td>
-                <td className="p-2 text-center">{getStat(t, 'autoInvalid')}</td>
-                <td className="p-2 text-center">{getStat(t, 'manualInvalid')}</td>
+                <td className="p-3 text-center">{getStat(t, 'siteVisits')}</td>
+                <td className="p-3 text-center">{getStat(t, 'bookings')}</td>
+                <td className="p-3 text-center">{getStat(t, 'autoWIP')}</td>
+                <td className="p-3 text-center">{getStat(t, 'manualWIP')}</td>
+                <td className="p-3 text-center">{getStat(t, 'autoWarm')}</td>
+                <td className="p-3 text-center">{getStat(t, 'manualWarm')}</td>
+                <td className="p-3 text-center">{getStat(t, 'autoCold')}</td>
+                <td className="p-3 text-center">{getStat(t, 'manualCold')}</td>
+                <td className="p-3 text-center">{getStat(t, 'autoJunk')}</td>
+                <td className="p-3 text-center">{getStat(t, 'manualJunk')}</td>
+                <td className="p-3 text-center">{getStat(t, 'autoRNR')}</td>
+                <td className="p-3 text-center">{getStat(t, 'manualRNR')}</td>
+                <td className="p-3 text-center">{getStat(t, 'autoInvalid')}</td>
+                <td className="p-3 text-center">{getStat(t, 'manualInvalid')}</td>
                 {/* <td className="p-2 text-center font-semibold text-blue-600">{getStat(t, 'wip')}</td>
                 <td className="p-2 text-center font-semibold text-yellow-600">{getStat(t, 'warm')}</td>
                 <td className="p-2 text-center font-semibold text-blue-400">{getStat(t, 'cold')}</td>
                 <td className="p-2 text-center font-semibold text-purple-500">{getStat(t, 'rnr')}</td>
                 <td className="p-2 text-center font-semibold text-red-500">{getStat(t, 'junk')}</td>
                 <td className="p-2 text-center font-semibold text-gray-500">{getStat(t, 'invalid')}</td> */}
-                <td className="p-2 text-center">{getStat(t, 'score')}</td>
+                <td className="p-3 text-center">{getStat(t, 'score')}</td>
               </tr>
               
             ))}
             {/* Summary row */}
             <tr className="font-bold bg-gray-100">
-              <td className="p-2 text-right">Total</td>
+              <td className="p-3 sticky left-0 bg-gray-100 z-10 font-bold">Total</td>
               <td className="p-2 text-center">
   {teamStatsWithQuality.reduce((sum, t) =>
     sum + (getStat(t, 'autoLeads') || getStat(t, 'auto') || 0) +
@@ -354,7 +355,8 @@ export default function AdminDashboard() {
               <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'score'), 0)}</td>
             </tr>
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
       <div className="flex justify-between items-center mb-4">
   
