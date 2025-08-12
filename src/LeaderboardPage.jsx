@@ -5,7 +5,7 @@ export default function LeaderboardPage() {
   const scriptUrl = "https://script.google.com/macros/s/AKfycbznX9Q-zsf-Trlal1aBSn4WPngHIOeBAycoI8XrmzKUq85aNQ-Mwk0scn86ty-4gsjA/exec";
 
   useEffect(() => {
-    fetch(`${scriptUrl}?action=getAdminStats&dateRange=7d`)
+    fetch(`${scriptUrl}?action=getAdminStats`)
       .then(res => res.json())
       .then(res => {
         const sortedData = [...(res.teamStats || [])].sort((a, b) => (b.score || 0) - (a.score || 0));
