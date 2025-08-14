@@ -558,8 +558,13 @@ export default function AutoLeadsSection({ email }) {
         <select onChange={e => handleFilterChange("project", e.target.value)} className="w-full mb-3 p-2 border rounded">
           <option value="">All Projects</option>
           {hasOtherProjects && <option value="Other">Other Projects</option>}
-          {[...new Set(leads.map(l => l["Project"]))].map(p => (
-            <option key={p}>{p}</option>
+          {Array.from(new Map(leads
+            .map(l => l["Project"])
+            .filter(p => p) // Remove null/undefined
+            .map(p => [p.toLowerCase(), p]) // Use lowercase as key to dedupe
+            .values() // Get the first occurrence of each case variation
+          ).values()).map(p => (
+            <option key={p} value={p}>{p}</option>
           ))}
         </select>
         <select onChange={e => handleFilterChange("quality", e.target.value)} className="w-full mb-3 p-2 border rounded">
@@ -719,12 +724,20 @@ export default function AutoLeadsSection({ email }) {
                         </div>
                       )}
                     </div>
-                    <select value={lead["Booked?"] || ""} onChange={(e) => handleInputChange(index, "Booked?", e.target.value)} className="p-2 border rounded">
+                    <select 
+                      value={lead["Booked?"] || ""} 
+                      onChange={(e) => handleInputChange(lead['Lead ID'], "Booked?", e.target.value)} 
+                      className="p-2 border rounded"
+                    >
                       <option value="">Booked?</option>
                       <option value="Yes">Yes</option>
                       <option value="No">No</option>
                     </select>
-                    <select value={lead["Lead Quality"] || ""} onChange={(e) => handleInputChange(index, "Lead Quality", e.target.value)} className="p-2 border rounded">
+                    <select 
+                      value={lead["Lead Quality"] || ""} 
+                      onChange={(e) => handleInputChange(lead['Lead ID'], "Lead Quality", e.target.value)} 
+                      className="p-2 border rounded"
+                    >
                       <option value="">Quality</option>
                       <option value="WIP">WIP</option>
                       <option value="Warm">Warm</option>
@@ -740,7 +753,7 @@ export default function AutoLeadsSection({ email }) {
                       type="text"
                       placeholder={`Feedback ${n}`}
                       value={lead[`Feedback ${n}`] || ""}
-                      onChange={(e) => handleInputChange(index, `Feedback ${n}`, e.target.value)}
+                      onChange={(e) => handleInputChange(lead['Lead ID'], `Feedback ${n}`, e.target.value)}
                       className="w-full p-2 border rounded"
                     />
                   ))}
