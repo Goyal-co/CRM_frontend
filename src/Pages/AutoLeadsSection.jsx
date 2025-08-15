@@ -5,6 +5,13 @@ export default function AutoLeadsSection({ email }) {
   const [leads, setLeads] = useState([]);
   const [expandedIndex, setExpandedIndex] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [transferData, setTransferData] = useState({
+    leadId: null,
+    currentProject: '',
+    newProject: '',
+    transferReason: ''
+  });
   const [filters, setFilters] = useState({
     project: "",
     quality: "",
@@ -14,7 +21,8 @@ export default function AutoLeadsSection({ email }) {
     date: "",
     startDate: "",
     endDate: "",
-    useDateRange: false
+    useDateRange: false,
+    showTransferred: false
   });
 
   const scriptUrl = `https://script.google.com/macros/s/AKfycbznX9Q-zsf-Trlal1aBSn4WPngHIOeBAycoI8XrmzKUq85aNQ-Mwk0scn86ty-4gsjA/exec`;
@@ -44,6 +52,71 @@ export default function AutoLeadsSection({ email }) {
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
+
+  const handleTransferProject = (lead) => {
+    setTransferData({
+      leadId: lead['Lead ID'],
+      currentProject: lead['Project'],
+      newProject: '',
+      transferReason: ''
+    });
+    setShowTransferModal(true);
+  };
+
+  const executeTransfer = async () => {
+    if (!transferData.newProject || !transferData.transferReason) {
+      alert('Please fill in all fields');
+      return;
+    }
+  
+    try {
+      console.log('Starting project transfer with data:', transferData);
+  
+      const updatedLeads = leads.map(lead => {
+        if (lead['Lead ID'] === transferData.leadId) {
+          return {
+            ...lead,
+            'Old Project': lead['Old Project'] || lead['Project'],
+            'Project': transferData.newProject,
+            'Transfer Reason': transferData.transferReason,
+            'Transferred': 'Yes',
+            'Transfer Time': new Date().toISOString()
+          };
+        }
+        return lead;
+      });
+  
+      const leadToUpdate = updatedLeads.find(l => l['Lead ID'] === transferData.leadId);
+      if (!leadToUpdate) throw new Error('Lead not found for update');
+  
+      const params = new URLSearchParams();
+      params.append('updateLead', 'true');
+      params.append('leadId', leadToUpdate['Lead ID']);
+      params.append('sheetName', 'Leads');
+  
+      // Add all fields without double encoding
+      Object.entries({
+        'Old Project': leadToUpdate['Old Project'] || '',
+        'Project': transferData.newProject,
+        'Transfer Reason': transferData.transferReason,
+        'Transferred': 'Yes',
+        'Transfer Time': new Date().toISOString()
+      }).forEach(([key, value]) => {
+        params.append(key, value ?? '');
+      });
+  
+      const response = await fetch(`${scriptUrl}?${params.toString()}`, { method: 'GET' });
+      if (!response.ok) throw new Error('Failed to update lead');
+  
+      setLeads(updatedLeads);
+      setShowTransferModal(false);
+      alert('Project transferred successfully!');
+    } catch (error) {
+      console.error('Error transferring project:', error);
+      alert('Failed to transfer project. Please try again.');
+    }
+  };
+  
 
   const handleInputChange = (leadId, key, value) => {
     setLeads(prevLeads => {
@@ -91,7 +164,12 @@ export default function AutoLeadsSection({ email }) {
         { key: 'Called?', value: lead["Called?"] || '' },
         { key: 'Site Visit?', value: lead["Site Visit?"] || 'No' },
         { key: 'Booked?', value: lead["Booked?"] || '' },
-        { key: 'Lead Quality', value: lead["Lead Quality"] || '' }
+        { key: 'Lead Quality', value: lead["Lead Quality"] || '' },
+        { key: 'Old Project', value: lead["Old Project"] || '' },
+        { key: 'Transfer Reason', value: lead["Transfer Reason"] || '' },
+        { key: 'Transferred', value: lead["Transferred"] || '' },
+        { key: 'Transfer Time', value: lead["Transfer Time"] || '' },
+        { key: 'Project', value: lead["Project"] || '' }
       ];
       
       // Add feedback fields
@@ -120,7 +198,7 @@ export default function AutoLeadsSection({ email }) {
       fields.forEach(field => {
         if (field.value !== undefined && field.value !== null) {
           // Encode the field name and value to handle special characters
-          params.append(encodeURIComponent(field.key), encodeURIComponent(field.value));
+          params.append(field.key, field.value ?? '');
         }
       });
       
@@ -331,25 +409,63 @@ export default function AutoLeadsSection({ email }) {
     'orchid platinum',
     'riviera uno'
   ];
+
+  const handleDownloadResponse = async (res) => {
+    try {
+      const data = await res.json();
+      console.log("Download response:", data);
+
+      if (data.success) {
+        alert(`✅ Recording downloaded successfully!\n\nFirebase URL: ${data.firebaseUrl}\n\nYou can now view it in the admin panel.`);
+      } else {
+        alert(`❌ Download failed: ${data.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error("Download error:", error);
+      alert(`Download failed: ${error.message}. Please try again later.`);
+    }
+  };
+
   const hasOtherProjects = allProjects.some(project => 
     project && !mainProjects.includes(project.toLowerCase().trim())
   );
 
-  const filteredLeads = leads.filter(lead => {
-    // Search term filter
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      const nameMatch = lead["Name"]?.toString().toLowerCase().includes(searchLower) || false;
-      const phoneMatch = lead["Phone"]?.toString().includes(searchTerm) || false;
-      const projectMatch = lead["Project"]?.toString().toLowerCase().includes(searchLower) || false;
-      const sourceMatch = lead["Source"]?.toString().toLowerCase().includes(searchLower) || false;
+const filteredLeads = leads.filter(lead => {
+  // Safely handle null/undefined lead
+  if (!lead) return false;
+  
+  // Search filter - handle empty search term case
+  if (searchTerm && searchTerm.trim() !== '') {
+    try {
+      const searchLower = searchTerm.toLowerCase().trim();
+      const name = String(lead["Name"] || '').toLowerCase();
+      const phone = String(lead["Phone"] || '');
+      const project = String(lead["Project"] || '').toLowerCase();
+      const source = String(lead["Source"] || '').toLowerCase();
+      const originalProject = String(lead["Old Project"] || lead["Original Project"] || '').toLowerCase();
+      const transferReason = String(lead["Transfer Reason"] || '').toLowerCase();
       
-      if (!(nameMatch || phoneMatch || projectMatch || sourceMatch)) {
-        return false; // Skip if search doesn't match
+      const matches = [
+        name.includes(searchLower),
+        phone.includes(searchTerm),
+        project.includes(searchLower),
+        source.includes(searchLower),
+        originalProject.includes(searchLower),
+        transferReason.includes(searchLower)
+      ];
+      
+      // If no matches found, exclude this lead
+      if (!matches.some(match => match === true)) {
+        return false;
       }
+    } catch (error) {
+      console.error('Error processing search:', error);
+      // If there's an error with search, show all leads to prevent white screen
+      return true;
     }
-    
-    // Date filter - handle both single date and date range using Assigned Time
+  }
+  
+  // Date filter - handle both single date and date range using Assigned Time
   if (filters.date || (filters.startDate || filters.endDate)) {
     // Get the lead's assigned time - handle both 'Assigned Time' and 'Assigned_Time' field names
     const assignedTimeStr = lead['Assigned Time'] || lead['Assigned_Time'] || lead['Timestamp'] || lead['Date Added'] || '';
@@ -427,15 +543,31 @@ export default function AutoLeadsSection({ email }) {
     let matchProject = true;
     if (filters.project) {
       const normalizedLeadProject = (lead["Project"] || '').toString().toLowerCase().trim();
-      if (filters.project === 'Other') {
+      const originalProject = (lead["Old Project"] || lead["Original Project"] || '').toString().toLowerCase().trim();
+      
+      if (filters.project === 'Transferred Projects') {
+        // Show only transferred projects (those with an Original Project value)
+        matchProject = originalProject !== '' && originalProject !== normalizedLeadProject;
+      } else if (filters.project === 'Other') {
         // Show leads from projects NOT in the main list
         matchProject = !mainProjects.includes(normalizedLeadProject);
       } else {
         // Show leads from the specific selected project (case-insensitive)
         const normalizedFilterProject = filters.project.toLowerCase().trim();
-        matchProject = normalizedLeadProject === normalizedFilterProject;
+        matchProject = normalizedLeadProject === normalizedFilterProject || 
+                      originalProject === normalizedFilterProject;
       }
-      if (!matchProject) return false;
+      
+      if (!matchProject) {
+        console.log('Lead filtered out by project filter:', {
+          leadId: lead['Lead ID'],
+          project: lead['Project'],
+          originalProject: lead['Original Project'],
+          filter: filters.project,
+          matched: matchProject
+        });
+        return false;
+      }
     }
     
     const matchQuality = filters.quality ? lead["Lead Quality"] === filters.quality : true;
@@ -555,18 +687,42 @@ export default function AutoLeadsSection({ email }) {
             </div>
           )}
         </div>
-        <select onChange={e => handleFilterChange("project", e.target.value)} className="w-full mb-3 p-2 border rounded">
-          <option value="">All Projects</option>
-          {hasOtherProjects && <option value="Other">Other Projects</option>}
-          {Array.from(new Map(leads
-            .map(l => l["Project"])
-            .filter(p => p) // Remove null/undefined
-            .map(p => [p.toLowerCase(), p]) // Use lowercase as key to dedupe
-            .values() // Get the first occurrence of each case variation
-          ).values()).map(p => (
-            <option key={p} value={p}>{p}</option>
-          ))}
-        </select>
+        <div className="mb-3">
+          <div className="flex items-center mb-1">
+            <span className="text-sm font-medium text-gray-700">Project</span>
+            {filters.showTransferred && (
+              <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                Showing Transferred
+              </span>
+            )}
+          </div>
+          <select 
+            onChange={e => handleFilterChange('project', e.target.value)}
+            className="w-full p-2 border rounded"
+            value={filters.project || ''}
+          >
+            <option value="">All Projects</option>
+            <option value="Transferred Projects">Transferred Projects</option>
+            {hasOtherProjects && <option value="Other">Other Projects</option>}
+            {Array.from(new Map(
+              // Get all unique projects (current and original)
+              [
+                ...leads.map(l => l['Project']),
+                ...leads
+                  .filter(l => l['Original Project'] && l['Original Project'] !== l['Project'])
+                  .map(l => l['Original Project'])
+              ]
+                .filter(Boolean) // Remove null/undefined
+                .map(p => [p, p]) // Use project name as both key and value
+            ).values())
+              .sort((a, b) => a.localeCompare(b)) // Sort alphabetically
+              .map(p => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+          </select>
+        </div>
         <select onChange={e => handleFilterChange("quality", e.target.value)} className="w-full mb-3 p-2 border rounded">
           <option value="">All Qualities</option>
           <option value="WIP">WIP</option>
@@ -642,7 +798,31 @@ export default function AutoLeadsSection({ email }) {
               <div className="flex justify-between items-center cursor-pointer" onClick={() => setExpandedIndex(isExpanded ? null : index)}>
                 <div>
                   <h4 className="font-semibold text-lg">{lead["Name"]}</h4>
-                  <p className="text-sm text-gray-500">{lead["Project"]}</p>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-1">
+                      <p className="text-sm text-gray-500">
+                        {lead["Old Project"] || lead["Original Project"] ? (
+                          <span className="font-medium">
+                            <span className="line-through text-gray-400">{lead["Old Project"] || lead["Original Project"]}</span>
+                            <span className="mx-1">→</span>
+                            <span className="text-blue-600">{lead["Project"]}</span>
+                          </span>
+                        ) : (
+                          lead["Project"]
+                        )}
+                      </p>
+                      {(lead["Old Project"] || lead["Original Project"]) && (
+                        <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full">
+                          Transferred
+                        </span>
+                      )}
+                    </div>
+                    {lead["Transfer Reason"] && (
+                      <div className="text-xs text-gray-500 bg-gray-50 p-1 px-2 rounded">
+                        <span className="font-medium">Reason:</span> {lead["Transfer Reason"]}
+                      </div>
+                    )}
+                  </div>
                   <p className="text-sm text-blue-600 font-medium">📱 {lead["Phone"] || 'No phone number'}</p>
                   <div className="flex items-center gap-2 mt-1">
                     <span className={`text-white text-xs px-2 py-1 rounded ${qualityColor}`}>
@@ -664,6 +844,39 @@ export default function AutoLeadsSection({ email }) {
               {/* Expanded Inputs */}
               {isExpanded && (
                 <div className="mt-4 space-y-2 text-sm">
+                  {/* Transfer Information - Show if this is a transferred lead */}
+                  {(lead["Old Project"] || lead["Original Project"]) && (
+                    <div className="bg-yellow-50 p-3 rounded-lg mb-3 border border-yellow-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <svg className="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                        </svg>
+                        <h4 className="font-semibold text-yellow-800 text-sm">Transfer Information</h4>
+                      </div>
+                      <div className="bg-white p-2 rounded border border-yellow-100 text-xs space-y-1">
+                        <div className="grid grid-cols-2 gap-1">
+                          <div>
+                            <p className="font-medium text-gray-600">From Project</p>
+                            <p className="text-gray-800">{lead["Old Project"] || lead["Original Project"]}</p>
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-600">To Project</p>
+                            <p className="text-blue-600 font-medium">{lead["Project"]}</p>
+                          </div>
+                        </div>
+                        {lead["Transfer Reason"] && (
+                          <div className="mt-1">
+                            <p className="font-medium text-gray-600">Reason</p>
+                            <p className="text-gray-800">{lead["Transfer Reason"]}</p>
+                          </div>
+                        )}
+                        {(lead["Transfer Time"] || lead["Transfer Date"]) && (
+                            <p><span className="font-medium">Date:</span> {new Date(lead["Transfer Time"] || lead["Transfer Date"]).toLocaleDateString()}</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="grid grid-cols-2 gap-2">
                     <select 
                       value={lead["Called?"] || ""} 
@@ -746,7 +959,23 @@ export default function AutoLeadsSection({ email }) {
                       <option value="Junk">Junk</option>
                       <option value="Invalid">Invalid</option>
                     </select>
+                    <button
+                      onClick={() => handleTransferProject(lead)}
+                      className="mt-2 w-full bg-yellow-100 text-yellow-800 p-2 rounded hover:bg-yellow-200 text-sm"
+                    >
+                      Transfer Project
+                    </button>
                   </div>
+                  {lead['Original Project'] && (
+                    <div className="text-xs text-gray-600 mb-2 p-2 bg-gray-50 rounded">
+                      <span className="font-semibold">Transferred from:</span> {lead['Original Project']}
+                      {lead['Transfer Reason'] && (
+                        <div className="mt-1">
+                          <span className="font-semibold">Reason:</span> {lead['Transfer Reason']}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {[1, 2, 3, 4, 5].map(n => (
                     <input
                       key={n}
@@ -770,6 +999,77 @@ export default function AutoLeadsSection({ email }) {
         })}
         </div>
       </div>
+
+      {/* Transfer Project Modal */}
+      {showTransferModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Transfer Project</h3>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Current Project
+              </label>
+              <input
+                type="text"
+                value={transferData.currentProject}
+                readOnly
+                className="w-full p-2 border rounded bg-gray-100"
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                New Project
+              </label>
+              <select
+                value={transferData.newProject}
+                onChange={(e) => setTransferData(prev => ({ ...prev, newProject: e.target.value }))}
+                className="w-full p-2 border rounded"
+              >
+                <option value="">Select a project</option>
+                {Array.from(new Map(leads
+                  .map(l => l['Project'])
+                  .filter(p => p) // Remove null/undefined
+                  .map(p => [p.toLowerCase(), p]) // Use lowercase as key to dedupe
+                  .values() // Get the first occurrence of each case variation
+                ).values())
+                .filter(project => project !== transferData.currentProject) // Exclude current project
+                .map(project => (
+                  <option key={project} value={project}>{project}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Reason for Transfer
+              </label>
+              <textarea
+                value={transferData.transferReason}
+                onChange={(e) => setTransferData(prev => ({ ...prev, transferReason: e.target.value }))}
+                placeholder="Enter the reason for transferring this project..."
+                className="w-full p-2 border rounded h-24"
+              />
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowTransferModal(false)}
+                className="px-4 py-2 text-gray-700 border rounded hover:bg-gray-100"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={executeTransfer}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Transfer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
