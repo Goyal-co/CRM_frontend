@@ -302,10 +302,10 @@ export default function AdminDashboard() {
                 <td className="p-3 text-center">{getStat(t, 'manualWarm')}</td>
                 <td className="p-3 text-center">{getStat(t, 'autoCold')}</td>
                 <td className="p-3 text-center">{getStat(t, 'manualCold')}</td>
-                <td className="p-3 text-center">{getStat(t, 'autoJunk')}</td>
-                <td className="p-3 text-center">{getStat(t, 'manualJunk')}</td>
                 <td className="p-3 text-center">{getStat(t, 'autoRNR')}</td>
                 <td className="p-3 text-center">{getStat(t, 'manualRNR')}</td>
+                <td className="p-3 text-center">{getStat(t, 'autoJunk')}</td>
+                <td className="p-3 text-center">{getStat(t, 'manualJunk')}</td>
                 <td className="p-3 text-center">{getStat(t, 'autoInvalid')}</td>
                 <td className="p-3 text-center">{getStat(t, 'manualInvalid')}</td>
                 {/* <td className="p-2 text-center font-semibold text-blue-600">{getStat(t, 'wip')}</td>
@@ -340,10 +340,10 @@ export default function AdminDashboard() {
               <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'manualWarm'), 0)}</td>
               <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'autoCold'), 0)}</td>
               <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'manualCold'), 0)}</td>
-              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'autoJunk'), 0)}</td>
-              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'manualJunk'), 0)}</td>
               <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'autoRNR'), 0)}</td>
               <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'manualRNR'), 0)}</td>
+              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'autoJunk'), 0)}</td>
+              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'manualJunk'), 0)}</td>
               <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'autoInvalid'), 0)}</td>
               <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'manualInvalid'), 0)}</td>
               {/* <td className="p-2 text-center font-semibold text-blue-600">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'wip'), 0)}</td>
