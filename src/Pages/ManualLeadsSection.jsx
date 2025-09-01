@@ -17,6 +17,8 @@ function ManualLeadsSection({ email }) {
     lookingFor: "",
     siteVisit: "",
     siteVisitDate: "",
+    siteVisitDone: "",
+    siteVisitDoneDate: "",
     booked: "",
     feedback1: "",
     feedback2: "",
@@ -54,6 +56,7 @@ function ManualLeadsSection({ email }) {
         data.forEach((lead) => {
           values[lead["Lead ID"]] = {
             siteVisit: lead["Site Visit?"] || lead["SiteVisit"] || "",
+            siteVisitDone: lead["Site Visit Done?"] || lead["SiteVisitDone"] || "",
             booked: lead["Booked?"] || lead["Booked"] || "",
             leadQuality: lead["Lead Quality"] || lead["LeadQuality"] || lead["Quality"] || "",
             feedback1: lead["Feedback 1"] || lead["Feedback1"] || "",
@@ -61,7 +64,8 @@ function ManualLeadsSection({ email }) {
             feedback3: lead["Feedback 3"] || lead["Feedback3"] || "",
             feedback4: lead["Feedback 4"] || lead["Feedback4"] || "",
             feedback5: lead["Feedback 5"] || lead["Feedback5"] || "",
-            siteVisitDate: lead["Site Visit Date"] || lead["SiteVisitDate"] || ""
+            siteVisitDate: lead["Site Visit Date"] || lead["SiteVisitDate"] || "",
+            siteVisitDoneDate: lead["Site Visit Done Date"] || lead["SiteVisitDoneDate"] || ""
           };
         });
         
@@ -105,12 +109,40 @@ function ManualLeadsSection({ email }) {
         }
       }
 
+      // Validate site visit done date if site visit done is "Yes"
+      if (newLead.siteVisitDone === "Yes") {
+        if (!newLead.siteVisitDoneDate) {
+          alert("Please select a site visit done date.");
+          return;
+        }
+        
+        // Ensure the selected date is today or in the past
+        const today = new Date();
+        today.setHours(23, 59, 59, 999); // Set to end of today for comparison
+        const selectedDate = new Date(newLead.siteVisitDoneDate);
+        selectedDate.setHours(0, 0, 0, 0);
+        
+        if (selectedDate > today) {
+          alert("Site visit done date cannot be in the future. Please select today or a past date.");
+          return;
+        }
+      }
+
       // Format the site visit date if needed
       let formattedDate = '';
       if (newLead.siteVisit === 'Yes' && newLead.siteVisitDate) {
         const date = new Date(newLead.siteVisitDate);
         if (!isNaN(date.getTime())) {
           formattedDate = date.toISOString().split('T')[0];
+        }
+      }
+
+      // Format the site visit done date if needed
+      let formattedDoneDate = '';
+      if (newLead.siteVisitDone === 'Yes' && newLead.siteVisitDoneDate) {
+        const date = new Date(newLead.siteVisitDoneDate);
+        if (!isNaN(date.getTime())) {
+          formattedDoneDate = date.toISOString().split('T')[0];
         }
       }
 
@@ -122,6 +154,8 @@ function ManualLeadsSection({ email }) {
         lookingFor: newLead.lookingFor || '',
         siteVisit: newLead.siteVisit || 'No',
         siteVisitDate: formattedDate,
+        siteVisitDone: newLead.siteVisitDone || 'No',
+        siteVisitDoneDate: formattedDoneDate,
         booked: newLead.booked || 'No',
         leadQuality: newLead.leadQuality || 'WIP',
         feedback1: newLead.feedback1 || '',
@@ -144,6 +178,8 @@ function ManualLeadsSection({ email }) {
         lookingFor: formattedData.lookingFor,
         siteVisit: formattedData.siteVisit,
         siteVisitDate: formattedData.siteVisitDate,
+        siteVisitDone: formattedData.siteVisitDone,
+        siteVisitDoneDate: formattedData.siteVisitDoneDate,
         booked: formattedData.booked,
         feedback1: formattedData.feedback1,
         feedback2: formattedData.feedback2,
@@ -163,6 +199,8 @@ function ManualLeadsSection({ email }) {
         lookingFor: "",
         siteVisit: "",
         siteVisitDate: "",
+        siteVisitDone: "",
+        siteVisitDoneDate: "",
         booked: "",
         feedback1: "",
         feedback2: "",
@@ -232,6 +270,26 @@ function ManualLeadsSection({ email }) {
         }
       }
 
+      // Handle site visit done changes
+      if (field === 'siteVisitDone') {
+        if (value === 'Yes') {
+          // Set default date to today if not already set
+          if (!newValues[leadId]?.siteVisitDoneDate) {
+            const today = new Date();
+            newValues[leadId] = {
+              ...newValues[leadId],
+              siteVisitDoneDate: formatDateForInput(today.toISOString().split('T')[0])
+            };
+          }
+        } else {
+          // If setting to No or empty, clear date
+          newValues[leadId] = {
+            ...newValues[leadId],
+            siteVisitDoneDate: ''
+          };
+        }
+      }
+
       return newValues;
     });
   };
@@ -256,9 +314,26 @@ function ManualLeadsSection({ email }) {
         }
       }
       
+      // Format site visit done date fields before sending to backend
+      if (editedData.siteVisitDoneDate) {
+        // Ensure the date is in the correct format for the backend
+        const formattedDoneDate = formatDateForBackend(editedData.siteVisitDoneDate);
+        if (formattedDoneDate) {
+          editedData.siteVisitDoneDate = formattedDoneDate;
+        } else {
+          // If date formatting fails, keep the original value and let the backend handle it
+          console.warn('Could not format site visit done date, sending as-is:', editedData.siteVisitDoneDate);
+        }
+      }
+      
       // If site visit is set to 'No', clear the date
       if (editedData.siteVisit === 'No') {
         editedData.siteVisitDate = '';
+      }
+      
+      // If site visit done is set to 'No', clear the date
+      if (editedData.siteVisitDone === 'No') {
+        editedData.siteVisitDoneDate = '';
       }
 
       // Prepare URL parameters for the update
@@ -276,6 +351,8 @@ function ManualLeadsSection({ email }) {
           let fieldName = key;
           if (key === 'siteVisit') fieldName = 'Site Visit?';
           if (key === 'siteVisitDate') fieldName = 'Site Visit Date';
+          if (key === 'siteVisitDone') fieldName = 'Site Visit Done?';
+          if (key === 'siteVisitDoneDate') fieldName = 'Site Visit Done Date';
           if (key === 'booked') fieldName = 'Booked?';
           if (key === 'leadQuality') fieldName = 'Lead Quality';
           if (key === 'lookingFor') fieldName = 'Looking For';
@@ -514,6 +591,8 @@ function ManualLeadsSection({ email }) {
               <th className="p-2">Assignee</th>
               <th className="p-2">Site Visit?</th>
               <th className="p-2">Site Visit Date</th>
+              <th className="p-2">Site Visit Done?</th>
+              <th className="p-2">Site Visit Done Date</th>
               <th className="p-2">Booked?</th>
               <th className="p-2">Lead Quality</th>
               <th className="p-2">Feedback 1</th>
@@ -620,6 +699,93 @@ function ManualLeadsSection({ email }) {
                         })
                       : (lead["Site Visit Date"] 
                           ? new Date(lead["Site Visit Date"]).toLocaleDateString('en-IN', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })
+                          : "-")}
+                  </td>
+                  <td className="p-2">
+                    {isEditable ? (
+                      <div className="flex flex-col space-y-2">
+                        <select 
+                          value={values.siteVisitDone !== undefined ? values.siteVisitDone : (lead["Site Visit Done?"] || 'No')} 
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            handleEditInput(id, "siteVisitDone", value);
+                            
+                            // If setting to Yes and no date is set, set default to today
+                            if (value === 'Yes' && !values.siteVisitDoneDate && !lead["Site Visit Done Date"]) {
+                              const today = new Date();
+                              const defaultDate = today.toISOString().split('T')[0];
+                              handleEditInput(id, "siteVisitDoneDate", defaultDate);
+                            }
+                          }} 
+                          className="border px-2 py-1 rounded"
+                        >
+                          <option value="No">No</option>
+                          <option value="Yes">Yes</option>
+                        </select>
+                        {values.siteVisitDone === 'Yes' && (
+                          <div className="mt-2">
+                            <label className="block text-xs text-gray-600 mb-1">Site Visit Done Date</label>
+                            <input
+                              type="date"
+                              value={values.siteVisitDoneDate !== undefined 
+                                ? values.siteVisitDoneDate 
+                                : (lead["Site Visit Done Date"] 
+                                    ? formatDateForInput(lead["Site Visit Done Date"]) 
+                                    : "")}
+                              max={new Date().toISOString().split('T')[0]}
+                              onChange={(e) => {
+                                const selectedDate = e.target.value;
+                                if (!selectedDate) {
+                                  // If date is cleared, set site visit done to No
+                                  handleEditInput(id, "siteVisitDone", "No");
+                                  handleEditInput(id, "siteVisitDoneDate", "");
+                                  return;
+                                }
+                                
+                                // Format the date to YYYY-MM-DD to ensure consistency
+                                const date = new Date(selectedDate);
+                                if (!isNaN(date.getTime())) {
+                                  const formattedDate = date.toISOString().split('T')[0];
+                                  handleEditInput(id, "siteVisitDoneDate", formattedDate);
+                                } else {
+                                  // If date is invalid, use the raw value and let the validation handle it
+                                  handleEditInput(id, "siteVisitDoneDate", selectedDate);
+                                }
+                              }}
+                              className="w-full p-2 border rounded text-sm"
+                              required
+                            />
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col">
+                        <div>{lead["Site Visit Done?"] || 'No'}</div>
+                        {lead["Site Visit Done Date"] && (
+                          <div className="text-xs text-gray-600">
+                            {new Date(lead["Site Visit Done Date"]).toLocaleDateString('en-IN', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </td>
+                  <td className="p-2">
+                    {values.siteVisitDoneDate !== undefined 
+                      ? new Date(values.siteVisitDoneDate).toLocaleDateString('en-IN', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        })
+                      : (lead["Site Visit Done Date"] 
+                          ? new Date(lead["Site Visit Done Date"]).toLocaleDateString('en-IN', {
                               year: 'numeric',
                               month: 'short',
                               day: 'numeric'
