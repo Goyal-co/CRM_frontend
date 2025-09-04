@@ -862,7 +862,37 @@ const filteredLeads = leads.filter(lead => {
                     )}
                   </div>
                   <p className="text-sm text-blue-600 font-medium">📱 {lead["Phone"] || 'No phone number'}</p>
-                  <div className="flex items-center gap-2 mt-1">
+                  
+                  {/* Meta Form Fields Display */}
+                  <div className="grid grid-cols-2 gap-2 mt-2 text-xs">
+                    {lead["Size"] && (
+                      <div className="bg-blue-50 p-1 px-2 rounded">
+                        <span className="font-medium text-blue-700">Size:</span> {lead["Size"]}
+                      </div>
+                    )}
+                    {lead["Budget"] && (
+                      <div className="bg-green-50 p-1 px-2 rounded">
+                        <span className="font-medium text-green-700">Budget:</span> {lead["Budget"]}
+                      </div>
+                    )}
+                    {lead["Purpose"] && (
+                      <div className="bg-purple-50 p-1 px-2 rounded">
+                        <span className="font-medium text-purple-700">Purpose:</span> {lead["Purpose"]}
+                      </div>
+                    )}
+                    {lead["Priority"] && (
+                      <div className="bg-orange-50 p-1 px-2 rounded">
+                        <span className="font-medium text-orange-700">Priority:</span> {lead["Priority"]}
+                      </div>
+                    )}
+                    {lead["Work Location"] && (
+                      <div className="bg-indigo-50 p-1 px-2 rounded col-span-2">
+                        <span className="font-medium text-indigo-700">Work Location:</span> {lead["Work Location"]}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 mt-2">
                     <span className={`text-white text-xs px-2 py-1 rounded ${qualityColor}`}>
                       {lead["Lead Quality"]}
                     </span>
@@ -1044,6 +1074,60 @@ const filteredLeads = leads.filter(lead => {
                       <option value="Junk">Junk</option>
                       <option value="Invalid">Invalid</option>
                     </select>
+                    
+                    {/* Meta Form Fields - Editable */}
+                    <div className="grid grid-cols-2 gap-2 mt-3">
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">Size</label>
+                        <input
+                          type="text"
+                          placeholder="Preferred Size"
+                          value={lead["Size"] || ""}
+                          onChange={(e) => handleInputChange(lead['Lead ID'], "Size", e.target.value)}
+                          className="w-full p-2 border rounded text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">Budget</label>
+                        <input
+                          type="text"
+                          placeholder="Budget Range"
+                          value={lead["Budget"] || ""}
+                          onChange={(e) => handleInputChange(lead['Lead ID'], "Budget", e.target.value)}
+                          className="w-full p-2 border rounded text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">Purpose</label>
+                        <input
+                          type="text"
+                          placeholder="Purpose"
+                          value={lead["Purpose"] || ""}
+                          onChange={(e) => handleInputChange(lead['Lead ID'], "Purpose", e.target.value)}
+                          className="w-full p-2 border rounded text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">Priority</label>
+                        <input
+                          type="text"
+                          placeholder="Priority"
+                          value={lead["Priority"] || ""}
+                          onChange={(e) => handleInputChange(lead['Lead ID'], "Priority", e.target.value)}
+                          className="w-full p-2 border rounded text-sm"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs text-gray-600 mb-1">Work Location</label>
+                        <input
+                          type="text"
+                          placeholder="Work Location"
+                          value={lead["Work Location"] || ""}
+                          onChange={(e) => handleInputChange(lead['Lead ID'], "Work Location", e.target.value)}
+                          className="w-full p-2 border rounded text-sm"
+                        />
+                      </div>
+                    </div>
                     <button
                       onClick={() => handleTransferProject(lead)}
                       className="mt-2 w-full bg-yellow-100 text-yellow-800 p-2 rounded hover:bg-yellow-200 text-sm"
