@@ -11,7 +11,7 @@ export default function Login() {
   localStorage.setItem("email", email); // ✅ This must match login email
   navigate("/user");
 
-  if (email === "pratham.goyalhariyana@gmail.com" || email === "avularudrasekharreddy@gmail.com") {
+  if (email === "pratham.goyalhariyana@gmail.com" || email === "avularudrasekharreddy@gmail.com" || email === "work.goyalco@gmail.com") {
     navigate("/admin");
   } else {
     navigate("/user");
