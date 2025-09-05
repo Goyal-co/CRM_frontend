@@ -4,9 +4,11 @@ import {
   formatDateForInput,
   formatDateForBackend 
 } from "../utils/leadUtils";
+import VideoLoader from "../components/VideoLoader";
 
 function ManualLeadsSection({ email }) {
   const [leads, setLeads] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [editedValues, setEditedValues] = useState({});
   const [showDatePicker, setShowDatePicker] = useState({});
   const [successMessage, setSuccessMessage] = useState(""); // ✅ toast state
@@ -44,6 +46,7 @@ function ManualLeadsSection({ email }) {
 
   const fetchManualLeads = async () => {
     try {
+      setLoading(true);
       const res = await fetch(`${scriptUrl}?action=getManualLeads&email=${email}`);
       const data = await res.json();
       
@@ -75,6 +78,8 @@ function ManualLeadsSection({ email }) {
       }
     } catch (error) {
       console.error("Error fetching manual leads:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -439,6 +444,19 @@ function ManualLeadsSection({ email }) {
     
     return nameMatch || phoneMatch || projectMatch || lookingForMatch || leadQualityMatch;
   });
+
+  // Show video loader when loading
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100">
+        <VideoLoader 
+          message="Loading manual leads..." 
+          size="large"
+          className="min-h-screen"
+        />
+      </div>
+    );
+  }
 
   // Get current leads for pagination
   const indexOfLastLead = currentPage * leadsPerPage;

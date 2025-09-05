@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import VideoLoader from './components/VideoLoader';
 
 export default function UserDashboard({ email }) {
   const navigate = useNavigate();
@@ -13,8 +14,12 @@ export default function UserDashboard({ email }) {
   }, [email]);
 
   return (
-    <div className="flex items-center justify-center min-h-screen text-gray-500 text-xl">
-      Redirecting to your dashboard...
+    <div className="min-h-screen bg-gray-100">
+      <VideoLoader 
+        message="Redirecting to your dashboard..." 
+        size="large"
+        className="min-h-screen"
+      />
     </div>
   );
 }

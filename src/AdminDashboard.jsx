@@ -1,14 +1,24 @@
-// ✅ unchanged imports
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Bar, Pie } from 'react-chartjs-2';
 import {
-  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
-} from "recharts";
-import * as XLSX from "xlsx";
-import { saveAs } from "file-saver";
-import { useNavigate } from "react-router-dom";
-import { db } from './firebase-config.js';
-import { doc, getDoc, setDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+} from 'chart.js';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, collection, getDocs, doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
+import LeadSourceAnalysis from './components/LeadSourceAnalysis';
+import SourceComparison from './components/SourceComparison';
+import CallRecordingsPanel from './components/CallRecordingsPanel';
+import TitanBrain from './TitanBrain';
+import TitanAiCallAnalysis from './TitanAiCallAnalysis';
+import VideoLoader from './components/VideoLoader';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -468,6 +478,19 @@ export default function AdminDashboard() {
   };
   
 
+  // Show video loader when main data is loading
+  if (leadsLoading) {
+    return (
+      <div className="min-h-screen bg-gray-100">
+        <VideoLoader 
+          message="Loading Admin Dashboard..." 
+          size="large"
+          className="min-h-screen"
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
       <h2 className="text-2xl font-bold mb-6 text-center">Admin Dashboard</h2>
@@ -508,7 +531,12 @@ export default function AdminDashboard() {
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
               disabled={snapshotLoading}
             >
-              {snapshotLoading ? "Loading..." : showSnapshot ? "Hide Snapshot" : "Show Snapshot"}
+{snapshotLoading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Loading...
+                </div>
+              ) : showSnapshot ? "Hide Snapshot" : "Show Snapshot"}
             </button>
           </div>
         </div>
@@ -576,7 +604,12 @@ export default function AdminDashboard() {
                 className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded text-sm"
                 disabled={snapshotLoading}
               >
-                {snapshotLoading ? "Loading..." : "Apply Filter"}
+{snapshotLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Loading...
+                  </div>
+                ) : "Apply Filter"}
               </button>
             </div>
           </div>
@@ -614,7 +647,12 @@ export default function AdminDashboard() {
                 className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded"
                 disabled={!selectedUserForExport || userLeadsLoading}
               >
-                {userLeadsLoading ? "Loading..." : "📋 Download User Sheet"}
+{userLeadsLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Loading...
+                  </div>
+                ) : "📋 Download User Sheet"}
               </button>
             </div>
           </div>

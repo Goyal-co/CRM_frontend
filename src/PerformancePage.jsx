@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import VideoLoader from "./components/VideoLoader";
 
 export default function PerformancePage() {
   const email = localStorage.getItem("email");
@@ -26,8 +27,12 @@ export default function PerformancePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen text-gray-500">
-        Loading performance...
+      <div className="min-h-screen bg-gray-100">
+        <VideoLoader 
+          message="Loading performance data..." 
+          size="large"
+          className="min-h-screen"
+        />
       </div>
     );
   }

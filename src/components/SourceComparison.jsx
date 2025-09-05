@@ -1,13 +1,4 @@
 import React, { useState, useEffect } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Card } from "@/components/ui/card";
 
 const scriptId =
   "AKfycbznX9Q-zsf-Trlal1aBSn4WPngHIOeBAycoI8XrmzKUq85aNQ-Mwk0scn86ty-4gsjA";
@@ -103,45 +94,45 @@ export default function SourceComparison() {
       <h2 className="text-2xl font-bold mb-4">
         📊 Source Comparison & AI Insights
       </h2>
-      <Card className="p-4 overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Source</TableHead>
-              <TableHead>Total Leads</TableHead>
-              <TableHead>Conversion %</TableHead>
-              <TableHead>Quality Score</TableHead>
-              <TableHead>Junk %</TableHead>
-              <TableHead>Marketer Suggestion</TableHead>
-              <TableHead>Admin Suggestion</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+      <div className="bg-white p-4 rounded-lg shadow-md overflow-x-auto">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="border-b">
+              <th className="text-left p-2 font-semibold">Source</th>
+              <th className="text-left p-2 font-semibold">Total Leads</th>
+              <th className="text-left p-2 font-semibold">Conversion %</th>
+              <th className="text-left p-2 font-semibold">Quality Score</th>
+              <th className="text-left p-2 font-semibold">Junk %</th>
+              <th className="text-left p-2 font-semibold">Marketer Suggestion</th>
+              <th className="text-left p-2 font-semibold">Admin Suggestion</th>
+            </tr>
+          </thead>
+          <tbody>
             {sources.map((src, i) => {
               const insight = insights.find(
                 (ins) => ins.source === src.source
               );
               return (
-                <TableRow key={i}>
-                  <TableCell className="font-semibold">
+                <tr key={i} className="border-b hover:bg-gray-50">
+                  <td className="p-2 font-semibold">
                     {src.source}
-                  </TableCell>
-                  <TableCell>{src.totalLeads}</TableCell>
-                  <TableCell>{src.conversionRate}%</TableCell>
-                  <TableCell>{src.qualityScore}/10</TableCell>
-                  <TableCell>{src.junkRate || 0}%</TableCell>
-                  <TableCell className="text-sm text-blue-700">
+                  </td>
+                  <td className="p-2">{src.totalLeads}</td>
+                  <td className="p-2">{src.conversionRate}%</td>
+                  <td className="p-2">{src.qualityScore}/10</td>
+                  <td className="p-2">{src.junkRate || 0}%</td>
+                  <td className="p-2 text-sm text-blue-700">
                     {insight?.marketerSuggestion}
-                  </TableCell>
-                  <TableCell className="text-sm text-green-700">
+                  </td>
+                  <td className="p-2 text-sm text-green-700">
                     {insight?.adminSuggestion}
-                  </TableCell>
-                </TableRow>
+                  </td>
+                </tr>
               );
             })}
-          </TableBody>
-        </Table>
-      </Card>
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

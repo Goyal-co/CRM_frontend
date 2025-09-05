@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { formatDateForInput, formatDateForBackend } from "../utils/leadUtils";
+import VideoLoader from "../components/VideoLoader";
 
 export default function AutoLeadsSection({ email }) {
   const [leads, setLeads] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [expandedIndex, setExpandedIndex] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [showTransferModal, setShowTransferModal] = useState(false);
@@ -41,12 +43,17 @@ export default function AutoLeadsSection({ email }) {
   };
 
   useEffect(() => {
+    setLoading(true);
     fetch(`${scriptUrl}?action=getLeads&email=${email}`)
       .then(res => res.json())
-      .then(data => setLeads(data.reverse()))
+      .then(data => {
+        setLeads(data.reverse());
+        setLoading(false);
+      })
       .catch(error => {
         console.error("Error fetching leads:", error);
         alert("Failed to load leads. Please check your network and try again.");
+        setLoading(false);
       });
   }, [email]);
 
@@ -621,6 +628,19 @@ const filteredLeads = leads.filter(lead => {
     else if (l["Lead Quality"] === "Junk") qualityCounts.Junk++;
     else if (l["Lead Quality"] === "Invalid") qualityCounts.Invalid++;
   });
+
+  // Show video loader when loading
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100">
+        <VideoLoader 
+          message="Loading leads..." 
+          size="large"
+          className="min-h-screen"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex">
