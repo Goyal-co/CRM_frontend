@@ -28,6 +28,7 @@ function ManualLeadsSection({ email }) {
     feedback4: "",
     feedback5: "",
     leadQuality: "",
+    overallQuality: "",
   });
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -567,6 +568,16 @@ function ManualLeadsSection({ email }) {
             <option value="Junk">Junk</option>
             <option value="Invalid">Invalid</option>
           </select>
+          <select 
+            value={newLead.overallQuality} 
+            onChange={(e) => handleInputChange("overallQuality", e.target.value)} 
+            className="border border-blue-200 rounded px-3 py-2"
+          >
+            <option value="">Overall Quality</option>
+            <option value="Valid">Valid</option>
+            <option value="Invalid">Invalid</option>
+            <option value="In both">In both</option>
+          </select>
           <input type="text" placeholder="Feedback 1" value={newLead.feedback1} onChange={(e) => handleInputChange("feedback1", e.target.value)} className="border border-blue-200 rounded px-3 py-2" />
         </div>
         <button onClick={handleSubmit} className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded font-semibold">
@@ -613,6 +624,7 @@ function ManualLeadsSection({ email }) {
               <th className="p-2">Site Visit Done Date</th>
               <th className="p-2">Booked?</th>
               <th className="p-2">Lead Quality</th>
+              <th className="p-2">Overall Quality</th>
               <th className="p-2">Feedback 1</th>
               <th className="p-2">Feedback 2</th>
               <th className="p-2">Feedback 3</th>
@@ -820,16 +832,38 @@ function ManualLeadsSection({ email }) {
                   </td>
                   <td className="p-2">
                     {isEditable ? (
-                      <select value={values.leadQuality || lead["Lead Quality"] || ""} onChange={(e) => handleEditInput(id, "leadQuality", e.target.value)} className="border px-2 py-1 rounded">
-                        <option value="">Lead Quality</option>
+                      <select 
+                        value={values.leadQuality !== undefined ? values.leadQuality : (lead["Lead Quality"] || lead["Quality"] || '')} 
+                        onChange={(e) => handleEditInput(id, "leadQuality", e.target.value)} 
+                        className="border px-2 py-1 rounded"
+                      >
+                        <option value="">Select</option>
                         <option value="WIP">WIP</option>
                         <option value="Warm">Warm</option>
                         <option value="Cold">Cold</option>
-                        <option value="RNR">RNR (Ring No Reply)</option>
+                        <option value="RNR">RNR</option>
                         <option value="Junk">Junk</option>
                         <option value="Invalid">Invalid</option>
                       </select>
-                    ) : lead["Lead Quality"]}
+                    ) : (
+                      lead["Lead Quality"] || lead["Quality"] || 'N/A'
+                    )}
+                  </td>
+                  <td className="p-2">
+                    {isEditable ? (
+                      <select 
+                        value={values.overallQuality !== undefined ? values.overallQuality : (lead["Overall Quality"] || '')} 
+                        onChange={(e) => handleEditInput(id, "overallQuality", e.target.value)} 
+                        className="border px-2 py-1 rounded"
+                      >
+                        <option value="">Select</option>
+                        <option value="Valid">Valid</option>
+                        <option value="Invalid">Invalid</option>
+                        <option value="In both">In both</option>
+                      </select>
+                    ) : (
+                      lead["Overall Quality"] || 'N/A'
+                    )}
                   </td>
                   {[1, 2, 3, 4, 5].map((i) => (
                     <td key={i} className="p-2 min-w-[150px]">

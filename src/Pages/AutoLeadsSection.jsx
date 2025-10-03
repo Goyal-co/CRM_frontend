@@ -191,6 +191,7 @@ export default function AutoLeadsSection({ email }) {
         { key: 'Site Visit Done?', value: lead["Site Visit Done?"] || 'No' },
         { key: 'Booked?', value: lead["Booked?"] || '' },
         { key: 'Lead Quality', value: lead["Lead Quality"] || '' },
+        { key: 'Overall Quality', value: lead["Overall Quality"] || '' },
         { key: 'Old Project', value: lead["Old Project"] || '' },
         { key: 'Transfer Reason', value: lead["Transfer Reason"] || '' },
         { key: 'Transferred', value: lead["Transferred"] || '' },
@@ -1093,6 +1094,16 @@ const filteredLeads = leads.filter(lead => {
                       <option value="RNR">RNR (Ring No Reply)</option>
                       <option value="Junk">Junk</option>
                       <option value="Invalid">Invalid</option>
+                    </select>
+                    <select 
+                      value={lead["Overall Quality"] || ""} 
+                      onChange={(e) => handleInputChange(lead['Lead ID'], "Overall Quality", e.target.value)} 
+                      className="p-2 border rounded"
+                    >
+                      <option value="">Overall Quality</option>
+                      <option value="Valid">Valid</option>
+                      <option value="Invalid">Invalid</option>
+                      <option value="In both">In both</option>
                     </select>
                     
                     {/* Meta Form Fields - Editable */}

@@ -61,6 +61,7 @@ export default function LeadDetailPage() {
               <th>Visit Date</th>
               <th>Booked?</th>
               <th>Lead Quality</th>
+              <th>Overall Quality</th>
             </tr>
           </thead>
           <tbody>
@@ -80,6 +81,7 @@ export default function LeadDetailPage() {
                 <td>{lead.siteVisitDate ? new Date(lead.siteVisitDate).toLocaleDateString() : "-"}</td>
                 <td>{lead.booked ? "Yes" : "No"}</td>
                 <td>{lead.quality || "-"}</td>
+                <td>{lead.overallQuality || "-"}</td>
               </tr>
             ))}
           </tbody>

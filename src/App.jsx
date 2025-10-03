@@ -27,6 +27,9 @@ import PitchPalPage from "./PitchPalPage";
 // ✅ Import Titan Brain page
 import TitanBrainPage from "./TitanBrainPage";
 
+// ✅ Import All Leads View page
+import AllLeadsView from "./Pages/AllLeadsView";
+
 export default function App() {
   const email = localStorage.getItem("email");
   const isAdmin = email === "pratham.goyalhariyana@gmail.com" || email === "avularudrasekharreddy@gmail.com";
@@ -42,6 +45,12 @@ export default function App() {
           path="/admin"
           element={
             isAdmin ? <AdminDashboard user={{ email }} /> : <Navigate to="/" />
+          }
+        />
+        <Route
+          path="/admin/all-leads"
+          element={
+            isAdmin ? <AllLeadsView /> : <Navigate to="/" />
           }
         />
         <Route

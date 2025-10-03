@@ -891,14 +891,21 @@ export default function AdminDashboard() {
           </table>
         </div>
       </div>
-      <div className="flex justify-between items-center mb-4">
-  
-  <button
-    onClick={exportLeaderboardToExcel}
-    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-  >
-    📥 Download Excel
-  </button>
+      <div className="flex justify-between items-center mb-4 gap-4 flex-wrap">
+        <div className="flex gap-4">
+          <button
+            onClick={exportLeaderboardToExcel}
+            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center gap-2"
+          >
+            📥 Download Excel
+          </button>
+          <button
+            onClick={() => navigate('/admin/all-leads')}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center gap-2"
+          >
+            👥 View All Leads
+          </button>
+        </div>
 </div>
 
       {/* Chart Toggles */}

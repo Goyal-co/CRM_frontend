@@ -28,7 +28,7 @@ const dummyTeam = [
 
 export default function AdminDashboard() {
   const [team, setTeam] = useState(dummyTeam);
-  const navigate = useNavigate(); // Add this
+  const navigate = useNavigate();
 
   const toggleStatus = (email) => {
     const updated = team.map((member) =>
@@ -39,16 +39,36 @@ export default function AdminDashboard() {
     setTeam(updated);
   };
 
+  const handleViewAllLeads = () => {
+    navigate('/admin/all-leads');
+  };
+
   return (
-    <div style={{ display: "flex", justifyContent: "center", gap: "20px", flexWrap: "wrap", marginTop: "30px" }}>
-      {team.map((member) => (
-        <TeamCard
-          key={member.email}
-          member={member}
-          onClick={() => navigate(`/leads/${encodeURIComponent(member.email)}`)}
-          toggleStatus={toggleStatus}
-        />
-      ))}
+    <div className="p-6">
+      <div className="flex flex-wrap gap-4 mb-6">
+        <button
+          onClick={() => navigate("/admin/recordings")}
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg shadow-md transition-colors duration-200"
+        >
+          <span>📞</span> Call Analysis
+        </button>
+        <button
+          onClick={handleViewAllLeads}
+          className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg shadow-md transition-colors duration-200"
+        >
+          <span>👥</span> View All Leads
+        </button>
+      </div>
+      <div style={{ display: "flex", justifyContent: "center", gap: "20px", flexWrap: "wrap" }}>
+        {team.map((member) => (
+          <TeamCard
+            key={member.email}
+            member={member}
+            onClick={() => navigate(`/leads/${encodeURIComponent(member.email)}`)}
+            toggleStatus={toggleStatus}
+          />
+        ))}
+      </div>
     </div>
   );
 }
