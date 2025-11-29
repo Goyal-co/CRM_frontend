@@ -48,6 +48,7 @@ export default function HomeDashboard({ email: propEmail }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-5xl">
         <Card title="Performance" subtitle="Tap to view" icon="📊" onClick={() => navigate('/performance')} />
         <Card title="Leads" subtitle="Tap to manage" icon="📋" onClick={() => navigate('/leads')} />
+        <Card title="Manual Leads" subtitle="Tap to add/view" icon="✍️" onClick={() => navigate('/leads/manual')} />
         <Card title="Status" subtitle="Tap to update" icon="✅" onClick={() => navigate('/status')} />
         <Card title="Daily Tip" subtitle="Expand your knowledge" icon="💡" onClick={() => setShowModal(true)} />
         <Card title="Weekly Leaderboard" subtitle="See who's on top" icon="🏆" onClick={() => navigate('/leaderboard')} />

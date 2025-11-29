@@ -77,6 +77,7 @@ export default function App() {
         />
         <Route path="/home" element={<HomeDashboard />} />
         <Route path="/leads" element={<LeadsPage />} />
+        <Route path="/leads/manual" element={<ManualLeadsSection email={email} />} />
         <Route path="/performance" element={<PerformancePage />} />
         <Route path="/status" element={<StatusPage />} />
         <Route path="/tasks" element={<TasksPage />} />

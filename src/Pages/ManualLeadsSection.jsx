@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { 
+import {
   getManualLeadsCount,
   formatDateForInput,
-  formatDateForBackend 
+  formatDateForBackend
 } from "../utils/leadUtils";
 import VideoLoader from "../components/VideoLoader";
 
@@ -15,6 +15,7 @@ function ManualLeadsSection({ email }) {
   const [newLead, setNewLead] = useState({
     project: "",
     name: "",
+    email: "",
     phone: "",
     lookingFor: "",
     siteVisit: "",
@@ -50,11 +51,14 @@ function ManualLeadsSection({ email }) {
       setLoading(true);
       const res = await fetch(`${scriptUrl}?action=getManualLeads&email=${email}`);
       const data = await res.json();
-      
+
       if (Array.isArray(data)) {
-        // Set the leads data
-        setLeads(data);
-        
+        // Sort leads by reversing the array (assuming sheet is append-only, so last is newest)
+        const sortedLeads = [...data].reverse();
+        console.log("Manual Leads Data:", data);
+        console.log("Sorted Leads (First 2):", sortedLeads.slice(0, 2));
+        setLeads(sortedLeads);
+
         // Initialize edited values with all fields from the sheet
         const values = {};
         data.forEach((lead) => {
@@ -63,6 +67,8 @@ function ManualLeadsSection({ email }) {
             siteVisitDone: lead["Site Visit Done?"] || lead["SiteVisitDone"] || "",
             booked: lead["Booked?"] || lead["Booked"] || "",
             leadQuality: lead["Lead Quality"] || lead["LeadQuality"] || lead["Quality"] || "",
+            overallQuality: lead["Overall Quality"] || lead["OverallQuality"] || "",
+            email: lead["Email"] || lead["email"] || lead["Lead Email"] || "",
             feedback1: lead["Feedback 1"] || lead["Feedback1"] || "",
             feedback2: lead["Feedback 2"] || lead["Feedback2"] || "",
             feedback3: lead["Feedback 3"] || lead["Feedback3"] || "",
@@ -72,7 +78,7 @@ function ManualLeadsSection({ email }) {
             siteVisitDoneDate: lead["Site Visit Done Date"] || lead["SiteVisitDoneDate"] || ""
           };
         });
-        
+
         setEditedValues(values);
       } else {
         console.error("Invalid data format received:", data);
@@ -102,13 +108,13 @@ function ManualLeadsSection({ email }) {
           alert("Please select a site visit date.");
           return;
         }
-        
+
         // Ensure the selected date is today or in the future
         const today = new Date();
         today.setHours(0, 0, 0, 0); // Reset time part to compare dates only
         const selectedDate = new Date(newLead.siteVisitDate);
         selectedDate.setHours(0, 0, 0, 0);
-        
+
         if (selectedDate < today) {
           alert("Site visit date cannot be in the past. Please select today or a future date.");
           return;
@@ -121,13 +127,13 @@ function ManualLeadsSection({ email }) {
           alert("Please select a site visit done date.");
           return;
         }
-        
+
         // Ensure the selected date is today or in the past
         const today = new Date();
         today.setHours(23, 59, 59, 999); // Set to end of today for comparison
         const selectedDate = new Date(newLead.siteVisitDoneDate);
         selectedDate.setHours(0, 0, 0, 0);
-        
+
         if (selectedDate > today) {
           alert("Site visit done date cannot be in the future. Please select today or a past date.");
           return;
@@ -156,6 +162,7 @@ function ManualLeadsSection({ email }) {
       const formattedData = {
         project: newLead.project,
         name: newLead.name,
+        email: newLead.email, // Add email to the formatted data
         phone: newLead.phone,
         lookingFor: newLead.lookingFor || '',
         siteVisit: newLead.siteVisit || 'No',
@@ -168,18 +175,20 @@ function ManualLeadsSection({ email }) {
         feedback2: newLead.feedback2 || '',
         feedback3: newLead.feedback3 || '',
         feedback4: newLead.feedback4 || '',
-        feedback5: newLead.feedback5 || ''
+        feedback5: newLead.feedback5 || '',
+        overallQuality: newLead.overallQuality || ''
       };
-      
+
       console.log('Submitting new lead with data:', formattedData);
 
       const leadId = "ML" + Date.now().toString().slice(-6);
       const leadData = {
         action: "addManualLead",
         leadId,
-        email,
+        email, // Assignee email
         project: formattedData.project,
         name: formattedData.name,
+        leadEmail: formattedData.email, // Lead email (renamed to avoid conflict)
         phone: formattedData.phone,
         lookingFor: formattedData.lookingFor,
         siteVisit: formattedData.siteVisit,
@@ -192,7 +201,8 @@ function ManualLeadsSection({ email }) {
         feedback3: formattedData.feedback3,
         feedback4: formattedData.feedback4,
         feedback5: formattedData.feedback5,
-        leadQuality: formattedData.leadQuality
+        leadQuality: formattedData.leadQuality,
+        overallQuality: formattedData.overallQuality
       };
 
       const params = new URLSearchParams(leadData);
@@ -201,6 +211,7 @@ function ManualLeadsSection({ email }) {
       setNewLead({
         project: "",
         name: "",
+        email: "",
         phone: "",
         lookingFor: "",
         siteVisit: "",
@@ -252,7 +263,7 @@ function ManualLeadsSection({ email }) {
             ...prev,
             [leadId]: true
           }));
-          
+
           // Set default date to tomorrow if not already set
           if (!newValues[leadId]?.siteVisitDate) {
             const tomorrow = new Date();
@@ -268,7 +279,7 @@ function ManualLeadsSection({ email }) {
             ...prev,
             [leadId]: false
           }));
-          
+
           newValues[leadId] = {
             ...newValues[leadId],
             siteVisitDate: ''
@@ -303,11 +314,11 @@ function ManualLeadsSection({ email }) {
   const handleUpdate = async (leadId) => {
     try {
       const editedData = { ...(editedValues[leadId] || {}) };
-      
+
       if (Object.keys(editedData).length === 0) {
         throw new Error('No fields to update');
       }
-      
+
       // Format date fields before sending to backend
       if (editedData.siteVisitDate) {
         // Ensure the date is in the correct format for the backend
@@ -319,7 +330,7 @@ function ManualLeadsSection({ email }) {
           console.warn('Could not format date, sending as-is:', editedData.siteVisitDate);
         }
       }
-      
+
       // Format site visit done date fields before sending to backend
       if (editedData.siteVisitDoneDate) {
         // Ensure the date is in the correct format for the backend
@@ -331,12 +342,12 @@ function ManualLeadsSection({ email }) {
           console.warn('Could not format site visit done date, sending as-is:', editedData.siteVisitDoneDate);
         }
       }
-      
+
       // If site visit is set to 'No', clear the date
       if (editedData.siteVisit === 'No') {
         editedData.siteVisitDate = '';
       }
-      
+
       // If site visit done is set to 'No', clear the date
       if (editedData.siteVisitDone === 'No') {
         editedData.siteVisitDoneDate = '';
@@ -344,13 +355,14 @@ function ManualLeadsSection({ email }) {
 
       // Prepare URL parameters for the update
       const params = new URLSearchParams();
-      
+
       // Add required parameters
-      params.append('updateLead', 'true');
+      params.append('action', 'updateManualLead');
       params.append('leadId', leadId);
-      params.append('sheetName', 'Manual Leads');
-      
-      // Add all edited fields to the parameters with proper column names
+
+      const updates = {};
+
+      // Add all edited fields to the updates object with proper column names
       Object.entries(editedData).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
           // Convert field names to match Google Sheet column names
@@ -362,42 +374,50 @@ function ManualLeadsSection({ email }) {
           if (key === 'booked') fieldName = 'Booked?';
           if (key === 'leadQuality') fieldName = 'Lead Quality';
           if (key === 'lookingFor') fieldName = 'Looking For';
-          
-          params.append(fieldName, value);
+          if (key === 'overallQuality') fieldName = 'Overall Quality';
+          if (key === 'email') fieldName = 'email';
+
+          updates[fieldName] = value;
         }
       });
-      
+
       // Add feedback fields if they exist
       for (let i = 1; i <= 5; i++) {
         const feedbackKey = `feedback${i}`;
         if (editedData[feedbackKey] !== undefined && editedData[feedbackKey] !== '') {
-          params.append(`Feedback ${i}`, editedData[feedbackKey]);
+          updates[`Feedback${i}`] = editedData[feedbackKey];
         }
       }
 
+      params.append('updates', JSON.stringify(updates));
+
       const url = `${scriptUrl}?${params.toString()}`;
       console.log('Sending update to URL:', url);
-      
+
       // Make the GET request with the constructed URL
       const response = await fetch(url);
-      
+
       // Parse the response
       const responseText = await response.text();
       let result;
-      
+
       try {
         result = JSON.parse(responseText);
       } catch (e) {
         console.error('Failed to parse response:', responseText);
         throw new Error(`Invalid JSON response: ${responseText}`);
       }
-      
+
       console.log('Update result:', result);
-      
+      if (result.debug) {
+        console.log('Server Debug Log:', result.debug.join('\n'));
+        alert('Debug Info:\n' + result.debug.join('\n')); // Temporary alert to show the user what happened
+      }
+
       if (result.error) {
         throw new Error(result.error);
       }
-      
+
       if (!result.success) {
         throw new Error('Update failed: ' + (result.message || 'Unknown error'));
       }
@@ -408,7 +428,7 @@ function ManualLeadsSection({ email }) {
         delete newValues[leadId];
         return newValues;
       });
-      
+
       // Hide date picker
       setShowDatePicker(prev => ({
         ...prev,
@@ -427,37 +447,27 @@ function ManualLeadsSection({ email }) {
 
   useEffect(() => {
     fetchManualLeads();
-  }, []);
-
-  // Filter leads based on search term
-  const filteredLeads = leads.filter(lead => {
-    // If no search term, include all leads
-    if (!searchTerm) return true;
-    
-    const searchLower = searchTerm.toLowerCase();
-    
-    // Safely check each field with null/undefined checks
-    const nameMatch = lead['Name']?.toLowerCase().includes(searchLower) || false;
-    const phoneMatch = lead['Phone Number']?.toString().includes(searchTerm) || false;
-    const projectMatch = lead['Project']?.toLowerCase().includes(searchLower) || false;
-    const lookingForMatch = lead['Looking For']?.toLowerCase().includes(searchLower) || false;
-    const leadQualityMatch = lead['Lead Quality']?.toLowerCase().includes(searchLower) || false;
-    
-    return nameMatch || phoneMatch || projectMatch || lookingForMatch || leadQualityMatch;
-  });
+  }, [email]);
 
   // Show video loader when loading
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100">
-        <VideoLoader 
-          message="Loading manual leads..." 
+        <VideoLoader
+          message="Loading manual leads..."
           size="large"
           className="min-h-screen"
         />
       </div>
     );
   }
+
+  // Filter leads based on search term
+  const filteredLeads = leads.filter(lead =>
+    (lead.Name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (lead.Email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (lead['Phone Number'] || '').toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   // Get current leads for pagination
   const indexOfLastLead = currentPage * leadsPerPage;
@@ -513,17 +523,18 @@ function ManualLeadsSection({ email }) {
             <option value="Riviera Uno">Riviera Uno</option>
           </select>
           <input type="text" placeholder="Name" value={newLead.name} onChange={(e) => handleInputChange("name", e.target.value)} className="border border-blue-200 rounded px-3 py-2" />
+          <input type="email" placeholder="Email" value={newLead.email} onChange={(e) => handleInputChange("email", e.target.value)} className="border border-blue-200 rounded px-3 py-2" />
           <input type="text" placeholder="Phone Number" value={newLead.phone} onChange={(e) => handleInputChange("phone", e.target.value)} className="border border-blue-200 rounded px-3 py-2" />
-          <input 
-            type="text" 
-            placeholder="Looking For" 
-            value={newLead.lookingFor} 
-            onChange={(e) => handleInputChange("lookingFor", e.target.value)} 
-            className="border border-blue-200 rounded px-3 py-2" 
+          <input
+            type="text"
+            placeholder="Looking For"
+            value={newLead.lookingFor}
+            onChange={(e) => handleInputChange("lookingFor", e.target.value)}
+            className="border border-blue-200 rounded px-3 py-2"
           />
           <div className="w-full">
-            <select 
-              value={newLead.siteVisit} 
+            <select
+              value={newLead.siteVisit}
               onChange={(e) => {
                 handleInputChange("siteVisit", e.target.value);
                 // Clear site visit date when changing from Yes to No/empty
@@ -533,7 +544,7 @@ function ManualLeadsSection({ email }) {
                   // Set default to today if switching to Yes and no date set
                   handleInputChange("siteVisitDate", new Date().toISOString().split('T')[0]);
                 }
-              }} 
+              }}
               className="w-full border border-blue-200 rounded px-3 py-2"
             >
               <option value="">Site Visit?</option>
@@ -568,9 +579,9 @@ function ManualLeadsSection({ email }) {
             <option value="Junk">Junk</option>
             <option value="Invalid">Invalid</option>
           </select>
-          <select 
-            value={newLead.overallQuality} 
-            onChange={(e) => handleInputChange("overallQuality", e.target.value)} 
+          <select
+            value={newLead.overallQuality}
+            onChange={(e) => handleInputChange("overallQuality", e.target.value)}
             className="border border-blue-200 rounded px-3 py-2"
           >
             <option value="">Overall Quality</option>
@@ -589,7 +600,7 @@ function ManualLeadsSection({ email }) {
       <div className="bg-white rounded-xl shadow p-4 overflow-x-auto">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
           <h3 className="text-lg font-semibold text-blue-900">📋 Manual Leads List</h3>
-          
+
           <div className="relative w-full md:w-96">
             <input
               type="text"
@@ -615,21 +626,22 @@ function ManualLeadsSection({ email }) {
               <th className="p-2">Lead ID</th>
               <th className="p-2">Project</th>
               <th className="p-2">Name</th>
-              <th className="p-2">Phone</th>
+              <th className="p-2">Phone Number</th>
               <th className="p-2">Looking For?</th>
               <th className="p-2">Assignee</th>
               <th className="p-2">Site Visit?</th>
               <th className="p-2">Site Visit Date</th>
-              <th className="p-2">Site Visit Done?</th>
-              <th className="p-2">Site Visit Done Date</th>
               <th className="p-2">Booked?</th>
-              <th className="p-2">Lead Quality</th>
-              <th className="p-2">Overall Quality</th>
               <th className="p-2">Feedback 1</th>
               <th className="p-2">Feedback 2</th>
               <th className="p-2">Feedback 3</th>
               <th className="p-2">Feedback 4</th>
               <th className="p-2">Feedback 5</th>
+              <th className="p-2">Lead Quality</th>
+              <th className="p-2">Site Visit Done?</th>
+              <th className="p-2">Site Visit Done Date</th>
+              <th className="p-2">Overall Quality</th>
+              <th className="p-2">Email</th>
               <th className="p-2">Action</th>
             </tr>
           </thead>
@@ -650,12 +662,12 @@ function ManualLeadsSection({ email }) {
                   <td className="p-2">
                     {isEditable ? (
                       <div className="flex flex-col space-y-2">
-                        <select 
-                          value={values.siteVisit !== undefined ? values.siteVisit : (lead["Site Visit?"] || 'No')} 
+                        <select
+                          value={values.siteVisit !== undefined ? values.siteVisit : (lead["Site Visit?"] || 'No')}
                           onChange={(e) => {
                             const value = e.target.value;
                             handleEditInput(id, "siteVisit", value);
-                            
+
                             // If setting to Yes and no date is set, set default to tomorrow
                             if (value === 'Yes' && !values.siteVisitDate && !lead["Site Visit Date"]) {
                               const tomorrow = new Date();
@@ -663,7 +675,7 @@ function ManualLeadsSection({ email }) {
                               const defaultDate = tomorrow.toISOString().split('T')[0];
                               handleEditInput(id, "siteVisitDate", defaultDate);
                             }
-                          }} 
+                          }}
                           className="border px-2 py-1 rounded"
                         >
                           <option value="No">No</option>
@@ -674,11 +686,11 @@ function ManualLeadsSection({ email }) {
                             <label className="block text-xs text-gray-600 mb-1">Site Visit Date</label>
                             <input
                               type="date"
-                              value={values.siteVisitDate !== undefined 
-                                ? values.siteVisitDate 
-                                : (lead["Site Visit Date"] 
-                                    ? formatDateForInput(lead["Site Visit Date"]) 
-                                    : "")}
+                              value={values.siteVisitDate !== undefined
+                                ? values.siteVisitDate
+                                : (lead["Site Visit Date"]
+                                  ? formatDateForInput(lead["Site Visit Date"])
+                                  : "")}
                               min={new Date().toISOString().split('T')[0]}
                               onChange={(e) => {
                                 const selectedDate = e.target.value;
@@ -688,7 +700,7 @@ function ManualLeadsSection({ email }) {
                                   handleEditInput(id, "siteVisitDate", "");
                                   return;
                                 }
-                                
+
                                 // Format the date to YYYY-MM-DD to ensure consistency
                                 const date = new Date(selectedDate);
                                 if (!isNaN(date.getTime())) {
@@ -721,36 +733,95 @@ function ManualLeadsSection({ email }) {
                     )}
                   </td>
                   <td className="p-2">
-                    {values.siteVisitDate !== undefined 
+                    {values.siteVisitDate !== undefined
                       ? new Date(values.siteVisitDate).toLocaleDateString('en-IN', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      })
+                      : (lead["Site Visit Date"]
+                        ? new Date(lead["Site Visit Date"]).toLocaleDateString('en-IN', {
                           year: 'numeric',
                           month: 'short',
                           day: 'numeric'
                         })
-                      : (lead["Site Visit Date"] 
-                          ? new Date(lead["Site Visit Date"]).toLocaleDateString('en-IN', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric'
-                            })
-                          : "-")}
+                        : "-")}
+                  </td>
+                  <td className="p-2">
+                    {isEditable ? (
+                      <select value={values.booked || lead["Booked?"]} onChange={(e) => handleEditInput(id, "booked", e.target.value)} className="border px-2 py-1 rounded">
+                        <option value="No">No</option>
+                        <option value="Yes">Yes</option>
+                      </select>
+                    ) : lead["Booked?"]}
+                  </td>
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <td key={i} className="p-2 min-w-[150px]">
+                      {isEditable ? (
+                        <div
+                          className={`relative ${expandedFeedback[`${lead["Lead ID"]}-${i}`] ? 'fixed inset-0 z-50 bg-white p-4 shadow-lg' : ''}`}
+                          onClick={() => toggleFeedbackExpansion(lead["Lead ID"], i)}
+                        >
+                          <textarea
+                            className={`w-full p-2 border rounded ${expandedFeedback[`${lead["Lead ID"]}-${i}`] ? 'h-64' : 'h-20'}`}
+                            value={editedValues[lead["Lead ID"]]?.[`feedback${i}`] || lead[`Feedback ${i}`] || ''}
+                            onChange={(e) => handleEditInput(lead["Lead ID"], `feedback${i}`, e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            placeholder={`Enter feedback ${i}...`}
+                            rows="3"
+                          />
+                          {expandedFeedback[`${lead["Lead ID"]}-${i}`] && (
+                            <button
+                              className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleFeedbackExpansion(lead["Lead ID"], i);
+                              }}
+                            >
+                              Done
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="whitespace-pre-wrap">{lead[`Feedback ${i}`]}</div>
+                      )}
+                    </td>
+                  ))}
+                  <td className="p-2">
+                    {isEditable ? (
+                      <select
+                        value={values.leadQuality !== undefined ? values.leadQuality : (lead["Lead Quality"] || lead["Quality"] || '')}
+                        onChange={(e) => handleEditInput(id, "leadQuality", e.target.value)}
+                        className="border px-2 py-1 rounded"
+                      >
+                        <option value="">Select</option>
+                        <option value="WIP">WIP</option>
+                        <option value="Warm">Warm</option>
+                        <option value="Cold">Cold</option>
+                        <option value="RNR">RNR</option>
+                        <option value="Junk">Junk</option>
+                        <option value="Invalid">Invalid</option>
+                      </select>
+                    ) : (
+                      lead["Lead Quality"] || lead["Quality"] || 'N/A'
+                    )}
                   </td>
                   <td className="p-2">
                     {isEditable ? (
                       <div className="flex flex-col space-y-2">
-                        <select 
-                          value={values.siteVisitDone !== undefined ? values.siteVisitDone : (lead["Site Visit Done?"] || 'No')} 
+                        <select
+                          value={values.siteVisitDone !== undefined ? values.siteVisitDone : (lead["Site Visit Done?"] || 'No')}
                           onChange={(e) => {
                             const value = e.target.value;
                             handleEditInput(id, "siteVisitDone", value);
-                            
+
                             // If setting to Yes and no date is set, set default to today
                             if (value === 'Yes' && !values.siteVisitDoneDate && !lead["Site Visit Done Date"]) {
                               const today = new Date();
                               const defaultDate = today.toISOString().split('T')[0];
                               handleEditInput(id, "siteVisitDoneDate", defaultDate);
                             }
-                          }} 
+                          }}
                           className="border px-2 py-1 rounded"
                         >
                           <option value="No">No</option>
@@ -761,11 +832,11 @@ function ManualLeadsSection({ email }) {
                             <label className="block text-xs text-gray-600 mb-1">Site Visit Done Date</label>
                             <input
                               type="date"
-                              value={values.siteVisitDoneDate !== undefined 
-                                ? values.siteVisitDoneDate 
-                                : (lead["Site Visit Done Date"] 
-                                    ? formatDateForInput(lead["Site Visit Done Date"]) 
-                                    : "")}
+                              value={values.siteVisitDoneDate !== undefined
+                                ? values.siteVisitDoneDate
+                                : (lead["Site Visit Done Date"]
+                                  ? formatDateForInput(lead["Site Visit Done Date"])
+                                  : "")}
                               max={new Date().toISOString().split('T')[0]}
                               onChange={(e) => {
                                 const selectedDate = e.target.value;
@@ -775,7 +846,7 @@ function ManualLeadsSection({ email }) {
                                   handleEditInput(id, "siteVisitDoneDate", "");
                                   return;
                                 }
-                                
+
                                 // Format the date to YYYY-MM-DD to ensure consistency
                                 const date = new Date(selectedDate);
                                 if (!isNaN(date.getTime())) {
@@ -808,52 +879,25 @@ function ManualLeadsSection({ email }) {
                     )}
                   </td>
                   <td className="p-2">
-                    {values.siteVisitDoneDate !== undefined 
+                    {values.siteVisitDoneDate !== undefined
                       ? new Date(values.siteVisitDoneDate).toLocaleDateString('en-IN', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      })
+                      : (lead["Site Visit Done Date"]
+                        ? new Date(lead["Site Visit Done Date"]).toLocaleDateString('en-IN', {
                           year: 'numeric',
                           month: 'short',
                           day: 'numeric'
                         })
-                      : (lead["Site Visit Done Date"] 
-                          ? new Date(lead["Site Visit Done Date"]).toLocaleDateString('en-IN', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric'
-                            })
-                          : "-")}
+                        : "-")}
                   </td>
                   <td className="p-2">
                     {isEditable ? (
-                      <select value={values.booked || lead["Booked?"]} onChange={(e) => handleEditInput(id, "booked", e.target.value)} className="border px-2 py-1 rounded">
-                        <option value="No">No</option>
-                        <option value="Yes">Yes</option>
-                      </select>
-                    ) : lead["Booked?"]}
-                  </td>
-                  <td className="p-2">
-                    {isEditable ? (
-                      <select 
-                        value={values.leadQuality !== undefined ? values.leadQuality : (lead["Lead Quality"] || lead["Quality"] || '')} 
-                        onChange={(e) => handleEditInput(id, "leadQuality", e.target.value)} 
-                        className="border px-2 py-1 rounded"
-                      >
-                        <option value="">Select</option>
-                        <option value="WIP">WIP</option>
-                        <option value="Warm">Warm</option>
-                        <option value="Cold">Cold</option>
-                        <option value="RNR">RNR</option>
-                        <option value="Junk">Junk</option>
-                        <option value="Invalid">Invalid</option>
-                      </select>
-                    ) : (
-                      lead["Lead Quality"] || lead["Quality"] || 'N/A'
-                    )}
-                  </td>
-                  <td className="p-2">
-                    {isEditable ? (
-                      <select 
-                        value={values.overallQuality !== undefined ? values.overallQuality : (lead["Overall Quality"] || '')} 
-                        onChange={(e) => handleEditInput(id, "overallQuality", e.target.value)} 
+                      <select
+                        value={values.overallQuality !== undefined ? values.overallQuality : (lead["Overall Quality"] || '')}
+                        onChange={(e) => handleEditInput(id, "overallQuality", e.target.value)}
                         className="border px-2 py-1 rounded"
                       >
                         <option value="">Select</option>
@@ -865,39 +909,19 @@ function ManualLeadsSection({ email }) {
                       lead["Overall Quality"] || 'N/A'
                     )}
                   </td>
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <td key={i} className="p-2 min-w-[150px]">
-                      {isEditable ? (
-                        <div 
-                          className={`relative ${expandedFeedback[`${lead["Lead ID"]}-${i}`] ? 'fixed inset-0 z-50 bg-white p-4 shadow-lg' : ''}`}
-                          onClick={() => toggleFeedbackExpansion(lead["Lead ID"], i)}
-                        >
-                          <textarea
-                            className={`w-full p-2 border rounded ${expandedFeedback[`${lead["Lead ID"]}-${i}`] ? 'h-64' : 'h-20'}`}
-                            value={editedValues[lead["Lead ID"]]?.[`feedback${i}`] || lead[`Feedback ${i}`] || ''}
-                            onChange={(e) => handleEditInput(lead["Lead ID"], `feedback${i}`, e.target.value)}
-                            onClick={(e) => e.stopPropagation()}
-                            placeholder={`Enter feedback ${i}...`}
-                            rows="3"
-                          />
-                          {expandedFeedback[`${lead["Lead ID"]}-${i}`] && (
-                            <button 
-                              className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleFeedbackExpansion(lead["Lead ID"], i);
-                              }}
-                            >
-                              Done
-                            </button>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="whitespace-pre-wrap">{lead[`Feedback ${i}`]}</div>
-                      )}
-                    </td>
-                  ))}
-
+                  <td className="p-2">
+                    {isEditable ? (
+                      <input
+                        type="email"
+                        value={values.email !== undefined ? values.email : (lead["Email"] || lead["email"] || lead["Lead Email"] || '')}
+                        onChange={(e) => handleEditInput(id, "email", e.target.value)}
+                        className="border px-2 py-1 rounded w-full"
+                        placeholder="Enter email"
+                      />
+                    ) : (
+                      lead["Email"] || lead["email"] || lead["Lead Email"] || ''
+                    )}
+                  </td>
                   <td className="p-2">
                     {isEditable && (
                       <button onClick={() => handleUpdate(id)} className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded">
@@ -916,7 +940,7 @@ function ManualLeadsSection({ email }) {
           <div className="text-sm text-gray-500">
             Showing {Math.min(indexOfFirstLead + 1, filteredLeads.length)}-{Math.min(indexOfLastLead, filteredLeads.length)} of {filteredLeads.length} leads
           </div>
-          
+
           <div className="flex flex-wrap justify-center gap-1">
             <button
               onClick={() => paginate(1)}
@@ -932,9 +956,9 @@ function ManualLeadsSection({ email }) {
             >
               ‹
             </button>
-            
-            {Array.from({ 
-              length: Math.min(5, Math.ceil(filteredLeads.length / leadsPerPage)) 
+
+            {Array.from({
+              length: Math.min(5, Math.ceil(filteredLeads.length / leadsPerPage))
             }, (_, i) => {
               // Show pages around current page
               let pageNum;
@@ -947,11 +971,11 @@ function ManualLeadsSection({ email }) {
               } else {
                 pageNum = currentPage - 2 + i;
               }
-              
+
               if (pageNum < 1 || pageNum > Math.ceil(filteredLeads.length / leadsPerPage)) {
                 return null;
               }
-              
+
               return (
                 <button
                   key={pageNum}
@@ -962,7 +986,7 @@ function ManualLeadsSection({ email }) {
                 </button>
               );
             })}
-            
+
             <button
               onClick={() => paginate(currentPage + 1)}
               disabled={currentPage === Math.ceil(filteredLeads.length / leadsPerPage) || filteredLeads.length === 0}
