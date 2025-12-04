@@ -19,6 +19,8 @@ import CallRecordingsPanel from './components/CallRecordingsPanel';
 import TitanBrain from './TitanBrain';
 import TitanAiCallAnalysis from './TitanAiCallAnalysis';
 import VideoLoader from './components/VideoLoader';
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -40,7 +42,7 @@ export default function AdminDashboard() {
   const [siteVisitsDoneCount, setSiteVisitsDoneCount] = useState(0);
   const [bookingsCount, setBookingsCount] = useState(0);
   const [conversionPercent, setConversionPercent] = useState("0.0");
-  
+
   // Leads snapshot state
   const [leadsSnapshot, setLeadsSnapshot] = useState({
     userStats: [],
@@ -51,7 +53,7 @@ export default function AdminDashboard() {
   const [showSnapshot, setShowSnapshot] = useState(false);
   const [selectedUserForExport, setSelectedUserForExport] = useState("");
   const [userLeadsLoading, setUserLeadsLoading] = useState(false);
-  
+
   // Date filter state for snapshot
   const [snapshotDateFilter, setSnapshotDateFilter] = useState("all");
   const [customStartDate, setCustomStartDate] = useState("");
@@ -85,7 +87,7 @@ export default function AdminDashboard() {
     junk: getStat(member, 'junk'),
     invalid: getStat(member, 'invalid')
   }));
-  
+
 
   // Note: Cross-Origin-Opener-Policy warnings in the browser console are unrelated to this dashboard logic and can be ignored unless you are using window.open or window.postMessage between different origins.
   const handleFilterChange = (key, value) => {
@@ -100,18 +102,18 @@ export default function AdminDashboard() {
 
   // Get all unique projects from teamStats data
   const allProjects = [...new Set(teamStats.map(stat => stat.project).filter(Boolean))];
-  
+
   // Define main project list (normalized to lowercase for comparison)
   const mainProjects = [
     'orchid life',
-    'orchid salisbury', 
+    'orchid salisbury',
     'orchid bloomsberry',
     'orchid platinum',
     'riviera uno'
   ];
-  
+
   // Check if there are projects outside the main list
-  const hasOtherProjects = allProjects.some(project => 
+  const hasOtherProjects = allProjects.some(project =>
     !mainProjects.includes((project || '').toLowerCase().trim())
   );
 
@@ -145,15 +147,15 @@ export default function AdminDashboard() {
           const totalLeads = (data.autoLeadsCount || 0) + (data.manualLeadsCount || 0);
           const junkLeads = (data.autoJunk || 0) + (data.manualJunk || 0);
           const effectiveLeads = totalLeads - junkLeads;
-        
+
           const bookings = typeof data.bookingsCount === 'number'
             ? data.bookingsCount
             : (data.teamStats || []).reduce((sum, t) => sum + (t.bookings || 0), 0);
-        
+
           const percent = effectiveLeads > 0
             ? ((bookings / effectiveLeads) * 100).toFixed(1)
             : "0.0";
-        
+
           setConversionPercent(percent);
         }
       } catch (err) {
@@ -198,42 +200,42 @@ export default function AdminDashboard() {
     try {
       // Build query parameters for date and user filtering
       let queryParams = "action=getLeadsSnapshot";
-      
+
       if (snapshotDateFilter !== "all") {
         queryParams += `&dateFilter=${snapshotDateFilter}`;
-        
+
         if (snapshotDateFilter === "custom" && customStartDate && customEndDate) {
           queryParams += `&startDate=${customStartDate}&endDate=${customEndDate}`;
         }
       }
-      
+
       if (selectedUserFilter) {
         queryParams += `&userFilter=${encodeURIComponent(selectedUserFilter)}`;
       }
-      
+
       console.log("Making request with params:", queryParams);
       const response = await fetch(`https://script.google.com/macros/s/${scriptId}/exec?${queryParams}`);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
       console.log("Snapshot data received:", data); // Debug log
-      
+
       if (data.error) {
         throw new Error(data.error);
       }
-      
+
       // Ensure data structure is valid before setting state
       const validData = {
         userStats: Array.isArray(data.userStats) ? data.userStats : [],
         sourceStats: Array.isArray(data.sourceStats) ? data.sourceStats : [],
         allLeadsData: Array.isArray(data.allLeadsData) ? data.allLeadsData : []
       };
-      
+
       setLeadsSnapshot(validData);
-      
+
       // Reset selected user if not in new data
       if (selectedUserForExport && validData.userStats.length > 0) {
         const userExists = validData.userStats.some(user => user.user === selectedUserForExport);
@@ -241,7 +243,7 @@ export default function AdminDashboard() {
           setSelectedUserForExport("");
         }
       }
-      
+
     } catch (error) {
       console.error("Error fetching leads snapshot:", error);
       alert("Failed to fetch leads snapshot. Please try again.");
@@ -267,7 +269,7 @@ export default function AdminDashboard() {
       console.log("Export - leadsSnapshot:", leadsSnapshot);
       console.log("Export - sourceStats:", leadsSnapshot.sourceStats);
       console.log("Export - userStats:", leadsSnapshot.userStats);
-      
+
       // Create comprehensive Excel with both user and source stats
       exportToExcelWithBothStats();
     } catch (error) {
@@ -279,91 +281,91 @@ export default function AdminDashboard() {
   // Enhanced Excel export with guaranteed source stats
   const exportToExcelWithBothStats = () => {
     const wb = XLSX.utils.book_new();
-      
-      // User stats sheet
-      if (leadsSnapshot.userStats && leadsSnapshot.userStats.length > 0) {
-        const userWs = XLSX.utils.json_to_sheet(leadsSnapshot.userStats);
-        XLSX.utils.book_append_sheet(wb, userWs, "User Statistics");
-      }
-      
-      // Source stats sheet with flattened quality breakdown - Always include even if empty
-      console.log("Processing source stats for export...");
-      if (leadsSnapshot.sourceStats) {
-        if (leadsSnapshot.sourceStats.length > 0) {
-          const flattenedSourceStats = leadsSnapshot.sourceStats.map(source => ({
-            Source: source.source,
-            "Total Leads": source.totalLeads,
-            Called: source.called,
-            "Site Visits": source.siteVisits,
-            "Site Visits Done": source.siteVisitsDone,
-            Bookings: source.bookings,
-            "Conversion Rate": source.totalLeads > 0 ? ((source.bookings / source.totalLeads) * 100).toFixed(1) + "%" : "0%",
-            "WIP Quality": source.qualityBreakdown?.WIP || 0,
-            "Warm Quality": source.qualityBreakdown?.Warm || 0,
-            "Cold Quality": source.qualityBreakdown?.Cold || 0,
-            "RNR Quality": source.qualityBreakdown?.RNR || 0,
-            "Junk Quality": source.qualityBreakdown?.Junk || 0,
-            "Invalid Quality": source.qualityBreakdown?.Invalid || 0,
-            "Unknown Quality": source.qualityBreakdown?.Unknown || 0
-          }));
-          console.log("Flattened source stats:", flattenedSourceStats);
-          const sourceWs = XLSX.utils.json_to_sheet(flattenedSourceStats);
-          XLSX.utils.book_append_sheet(wb, sourceWs, "Source Statistics");
-        } else {
-          console.log("No source stats data to export");
-          // Create empty source stats sheet with headers
-          const emptySourceStats = [{
-            Source: "No Data",
-            "Total Leads": 0,
-            Called: 0,
-            "Site Visits": 0,
-            "Site Visits Done": 0,
-            Bookings: 0,
-            "Conversion Rate": "0%",
-            "WIP Quality": 0,
-            "Warm Quality": 0,
-            "Cold Quality": 0,
-            "RNR Quality": 0,
-            "Junk Quality": 0,
-            "Invalid Quality": 0,
-            "Unknown Quality": 0
-          }];
-          const sourceWs = XLSX.utils.json_to_sheet(emptySourceStats);
-          XLSX.utils.book_append_sheet(wb, sourceWs, "Source Statistics");
-        }
-      }
 
-      // Add detailed filtered leads data
-      if (leadsSnapshot.allLeadsData && leadsSnapshot.allLeadsData.length > 0) {
-        const leadsWs = XLSX.utils.json_to_sheet(leadsSnapshot.allLeadsData);
-        XLSX.utils.book_append_sheet(wb, leadsWs, "Filtered Leads Data");
+    // User stats sheet
+    if (leadsSnapshot.userStats && leadsSnapshot.userStats.length > 0) {
+      const userWs = XLSX.utils.json_to_sheet(leadsSnapshot.userStats);
+      XLSX.utils.book_append_sheet(wb, userWs, "User Statistics");
+    }
+
+    // Source stats sheet with flattened quality breakdown - Always include even if empty
+    console.log("Processing source stats for export...");
+    if (leadsSnapshot.sourceStats) {
+      if (leadsSnapshot.sourceStats.length > 0) {
+        const flattenedSourceStats = leadsSnapshot.sourceStats.map(source => ({
+          Source: source.source,
+          "Total Leads": source.totalLeads,
+          Called: source.called,
+          "Site Visits": source.siteVisits,
+          "Site Visits Done": source.siteVisitsDone,
+          Bookings: source.bookings,
+          "Conversion Rate": source.totalLeads > 0 ? ((source.bookings / source.totalLeads) * 100).toFixed(1) + "%" : "0%",
+          "WIP Quality": source.qualityBreakdown?.WIP || 0,
+          "Warm Quality": source.qualityBreakdown?.Warm || 0,
+          "Cold Quality": source.qualityBreakdown?.Cold || 0,
+          "RNR Quality": source.qualityBreakdown?.RNR || 0,
+          "Junk Quality": source.qualityBreakdown?.Junk || 0,
+          "Invalid Quality": source.qualityBreakdown?.Invalid || 0,
+          "Unknown Quality": source.qualityBreakdown?.Unknown || 0
+        }));
+        console.log("Flattened source stats:", flattenedSourceStats);
+        const sourceWs = XLSX.utils.json_to_sheet(flattenedSourceStats);
+        XLSX.utils.book_append_sheet(wb, sourceWs, "Source Statistics");
+      } else {
+        console.log("No source stats data to export");
+        // Create empty source stats sheet with headers
+        const emptySourceStats = [{
+          Source: "No Data",
+          "Total Leads": 0,
+          Called: 0,
+          "Site Visits": 0,
+          "Site Visits Done": 0,
+          Bookings: 0,
+          "Conversion Rate": "0%",
+          "WIP Quality": 0,
+          "Warm Quality": 0,
+          "Cold Quality": 0,
+          "RNR Quality": 0,
+          "Junk Quality": 0,
+          "Invalid Quality": 0,
+          "Unknown Quality": 0
+        }];
+        const sourceWs = XLSX.utils.json_to_sheet(emptySourceStats);
+        XLSX.utils.book_append_sheet(wb, sourceWs, "Source Statistics");
       }
+    }
 
-      // Add filter information sheet
-      const filterInfo = [{
-        "Applied Filters": "Snapshot Export Information",
-        "Date Filter": snapshotDateFilter || "All",
-        "User Filter": selectedUserFilter || "All Users",
-        "Custom Start Date": customStartDate || "N/A",
-        "Custom End Date": customEndDate || "N/A",
-        "Export Date": new Date().toISOString().split('T')[0],
-        "Total User Stats": leadsSnapshot.userStats?.length || 0,
-        "Total Source Stats": leadsSnapshot.sourceStats?.length || 0,
-        "Total Filtered Leads": leadsSnapshot.allLeadsData?.length || 0
-      }];
-      const filterWs = XLSX.utils.json_to_sheet(filterInfo);
-      XLSX.utils.book_append_sheet(wb, filterWs, "Filter Information");
+    // Add detailed filtered leads data
+    if (leadsSnapshot.allLeadsData && leadsSnapshot.allLeadsData.length > 0) {
+      const leadsWs = XLSX.utils.json_to_sheet(leadsSnapshot.allLeadsData);
+      XLSX.utils.book_append_sheet(wb, leadsWs, "Filtered Leads Data");
+    }
 
-      const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-      const file = new Blob([excelBuffer], { type: "application/octet-stream" });
-      
-      // Create more descriptive filename with filter info
-      let filename = "LeadsSnapshot";
-      if (selectedUserFilter) filename += `_${selectedUserFilter}`;
-      if (snapshotDateFilter && snapshotDateFilter !== "all") filename += `_${snapshotDateFilter}`;
-      filename += `_${new Date().toISOString().split('T')[0]}.xlsx`;
-      
-      saveAs(file, filename);
+    // Add filter information sheet
+    const filterInfo = [{
+      "Applied Filters": "Snapshot Export Information",
+      "Date Filter": snapshotDateFilter || "All",
+      "User Filter": selectedUserFilter || "All Users",
+      "Custom Start Date": customStartDate || "N/A",
+      "Custom End Date": customEndDate || "N/A",
+      "Export Date": new Date().toISOString().split('T')[0],
+      "Total User Stats": leadsSnapshot.userStats?.length || 0,
+      "Total Source Stats": leadsSnapshot.sourceStats?.length || 0,
+      "Total Filtered Leads": leadsSnapshot.allLeadsData?.length || 0
+    }];
+    const filterWs = XLSX.utils.json_to_sheet(filterInfo);
+    XLSX.utils.book_append_sheet(wb, filterWs, "Filter Information");
+
+    const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    const file = new Blob([excelBuffer], { type: "application/octet-stream" });
+
+    // Create more descriptive filename with filter info
+    let filename = "LeadsSnapshot";
+    if (selectedUserFilter) filename += `_${selectedUserFilter}`;
+    if (snapshotDateFilter && snapshotDateFilter !== "all") filename += `_${snapshotDateFilter}`;
+    filename += `_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+    saveAs(file, filename);
   };
 
   // Export user-specific detailed leads
@@ -376,13 +378,13 @@ export default function AdminDashboard() {
     setUserLeadsLoading(true);
     try {
       const response = await fetch(`https://script.google.com/macros/s/${scriptId}/exec?action=getUserLeads&user=${encodeURIComponent(selectedUserForExport)}`);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const userData = await response.json();
-      
+
       if (!userData || !userData.leads || userData.leads.length === 0) {
         alert(`No leads found for user: ${selectedUserForExport}`);
         return;
@@ -431,7 +433,7 @@ export default function AdminDashboard() {
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(exportData);
     XLSX.utils.book_append_sheet(wb, ws, "Leaderboard");
-  
+
     const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
     const file = new Blob([excelBuffer], { type: "application/octet-stream" });
     saveAs(file, "TeamLeaderboard.xlsx");
@@ -441,7 +443,7 @@ export default function AdminDashboard() {
     const data = teamStatsWithQuality.map(member => ({
       Name: member.name || "-",
       "Leads": (getStat(member, 'autoLeads') || getStat(member, 'auto') || 0) +
-               (getStat(member, 'manualLeads') || getStat(member, 'manual') || 0),
+        (getStat(member, 'manualLeads') || getStat(member, 'manual') || 0),
       "Auto Leads": getStat(member, 'autoLeads') || getStat(member, 'auto') || 0,
       "Manual Leads": getStat(member, 'manualLeads') || getStat(member, 'manual') || 0,
       "Site Visits": getStat(member, 'siteVisits'),
@@ -467,23 +469,23 @@ export default function AdminDashboard() {
       // "Lead Quality - Invalid": getStat(member, 'invalid'),
       "Score": getStat(member, 'score')
     }));
-  
+
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Leaderboard");
-  
+
     const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
     const file = new Blob([excelBuffer], { type: "application/octet-stream" });
     saveAs(file, "TeamLeaderboard.xlsx");
   };
-  
+
 
   // Show video loader when main data is loading
   if (leadsLoading) {
     return (
       <div className="min-h-screen bg-gray-100">
-        <VideoLoader 
-          message="Loading Admin Dashboard..." 
+        <VideoLoader
+          message="Loading Admin Dashboard..."
           size="large"
           className="min-h-screen"
         />
@@ -531,7 +533,7 @@ export default function AdminDashboard() {
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
               disabled={snapshotLoading}
             >
-{snapshotLoading ? (
+              {snapshotLoading ? (
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   Loading...
@@ -579,7 +581,7 @@ export default function AdminDashboard() {
                   ))
                 )}
               </select>
-              
+
               {snapshotDateFilter === "custom" && (
                 <>
                   <input
@@ -598,13 +600,13 @@ export default function AdminDashboard() {
                   />
                 </>
               )}
-              
+
               <button
                 onClick={fetchLeadsSnapshot}
                 className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded text-sm"
                 disabled={snapshotLoading}
               >
-{snapshotLoading ? (
+                {snapshotLoading ? (
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     Loading...
@@ -647,7 +649,7 @@ export default function AdminDashboard() {
                 className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded"
                 disabled={!selectedUserForExport || userLeadsLoading}
               >
-{userLeadsLoading ? (
+                {userLeadsLoading ? (
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     Loading...
@@ -759,24 +761,24 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
         <SummaryCard
           title="Auto Leads"
-          value={leadsLoading ? "..." : teamStats.reduce((sum, t) => sum + (t.autoLeads?? 0), 0)}
+          value={leadsLoading ? "..." : teamStats.reduce((sum, t) => sum + (t.autoLeads ?? 0), 0)}
           color="bg-blue-400"
         />
         <SummaryCard title="Manual Leads" value={leadsLoading ? "..." : manualLeadsCount} color="bg-blue-600" />
         <SummaryCard title="Total Leads" value={leadsLoading ? "..." : totalLeadsCount} color="bg-blue-800" />
-        <SummaryCard 
-  title="Junk Leads" 
-  value={leadsLoading ? "..." : teamStats.reduce((sum, t) => sum + (t.autoJunk || t.manualJunk || 0), 0)} 
-  color="bg-red-600" 
-/>
+        <SummaryCard
+          title="Junk Leads"
+          value={leadsLoading ? "..." : teamStats.reduce((sum, t) => sum + (t.autoJunk || t.manualJunk || 0), 0)}
+          color="bg-red-600"
+        />
         <SummaryCard title="Site Visits" value={leadsLoading ? "..." : siteVisitsCount} color="bg-green-500" />
         <SummaryCard title="Site Visits Done" value={leadsLoading ? "..." : siteVisitsDoneCount} color="bg-green-700" />
         <SummaryCard title="Bookings" value={leadsLoading ? "..." : bookingsCount} color="bg-purple-500" />
         <SummaryCard title="Conversion %" value={leadsLoading ? "..." : conversionPercent + "%"} color="bg-yellow-500" />
         <SummaryCard title="Manual WIP" value={leadsLoading ? "..." : teamStats.reduce((sum, t) => sum + (t.manualWIP || 0), 0)} color="bg-red-400" />
-<SummaryCard title="Manual Warm" value={leadsLoading ? "..." : teamStats.reduce((sum, t) => sum + (t.manualWarm || 0), 0)} color="bg-yellow-300" />
-<SummaryCard title="Manual Cold" value={leadsLoading ? "..." : teamStats.reduce((sum, t) => sum + (t.manualCold || 0), 0)} color="bg-blue-400" />
-<SummaryCard title="Manual Invalid" value={leadsLoading ? "..." : teamStats.reduce((sum, t) => sum + (t.manualInvalid || 0), 0)} color="bg-blue-400" />
+        <SummaryCard title="Manual Warm" value={leadsLoading ? "..." : teamStats.reduce((sum, t) => sum + (t.manualWarm || 0), 0)} color="bg-yellow-300" />
+        <SummaryCard title="Manual Cold" value={leadsLoading ? "..." : teamStats.reduce((sum, t) => sum + (t.manualCold || 0), 0)} color="bg-blue-400" />
+        <SummaryCard title="Manual Invalid" value={leadsLoading ? "..." : teamStats.reduce((sum, t) => sum + (t.manualInvalid || 0), 0)} color="bg-blue-400" />
 
       </div>
 
@@ -785,109 +787,109 @@ export default function AdminDashboard() {
         <h3 className="text-lg font-semibold mb-4">Team Leaderboard</h3>
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
-          <thead className="bg-gray-200">
-            <tr>
-              <th className="p-3 text-left sticky left-0 bg-white z-10">Name</th>
-              <th className="p-3 whitespace-nowrap">Leads</th>
-              <th className="p-3 whitespace-nowrap">Auto Leads</th>
-              <th className="p-3 whitespace-nowrap">Manual Leads</th>
-              <th className="p-3 whitespace-nowrap">Site Visits</th>
-              <th className="p-3 whitespace-nowrap">Site Visits Done</th>
-              <th className="p-3 whitespace-nowrap">Bookings</th>
-              <th className="p-3 whitespace-nowrap">WIP (Auto)</th>
-              <th className="p-3 whitespace-nowrap">WIP (Manual)</th>
-              <th className="p-3 whitespace-nowrap">Warm (Auto)</th>
-              <th className="p-3 whitespace-nowrap">Warm (Manual)</th>
-              <th className="p-3 whitespace-nowrap">Cold (Auto)</th>
-              <th className="p-3 whitespace-nowrap">Cold (Manual)</th>
-              <th className="p-3 whitespace-nowrap">RNR (Auto)</th>
-              <th className="p-3 whitespace-nowrap">RNR (Manual)</th>
-              <th className="p-3 whitespace-nowrap">Junk (Auto)</th>
-              <th className="p-3 whitespace-nowrap">Junk (Manual)</th>
-              <th className="p-3 whitespace-nowrap">Invalid (Auto)</th>
-              <th className="p-3 whitespace-nowrap">Invalid (Manual)</th>
-              {/* <th className="p-2">Lead Quality - WIP</th>
+            <thead className="bg-gray-200">
+              <tr>
+                <th className="p-3 text-left sticky left-0 bg-white z-10">Name</th>
+                <th className="p-3 whitespace-nowrap">Leads</th>
+                <th className="p-3 whitespace-nowrap">Auto Leads</th>
+                <th className="p-3 whitespace-nowrap">Manual Leads</th>
+                <th className="p-3 whitespace-nowrap">Site Visits</th>
+                <th className="p-3 whitespace-nowrap">Site Visits Done</th>
+                <th className="p-3 whitespace-nowrap">Bookings</th>
+                <th className="p-3 whitespace-nowrap">WIP (Auto)</th>
+                <th className="p-3 whitespace-nowrap">WIP (Manual)</th>
+                <th className="p-3 whitespace-nowrap">Warm (Auto)</th>
+                <th className="p-3 whitespace-nowrap">Warm (Manual)</th>
+                <th className="p-3 whitespace-nowrap">Cold (Auto)</th>
+                <th className="p-3 whitespace-nowrap">Cold (Manual)</th>
+                <th className="p-3 whitespace-nowrap">RNR (Auto)</th>
+                <th className="p-3 whitespace-nowrap">RNR (Manual)</th>
+                <th className="p-3 whitespace-nowrap">Junk (Auto)</th>
+                <th className="p-3 whitespace-nowrap">Junk (Manual)</th>
+                <th className="p-3 whitespace-nowrap">Invalid (Auto)</th>
+                <th className="p-3 whitespace-nowrap">Invalid (Manual)</th>
+                {/* <th className="p-2">Lead Quality - WIP</th>
               <th className="p-2">Lead Quality - Warm</th>
               <th className="p-2">Lead Quality - Cold</th>
               <th className="p-2">Lead Quality - RNR</th>
               <th className="p-2">Lead Quality - Junk</th>
               <th className="p-2">Lead Quality - Invalid</th> */}
 
-              <th className="p-3 whitespace-nowrap">Score</th>
-            </tr>
-          </thead>
-          <tbody>
-            {teamStatsWithQuality.map((t, i) => (
+                <th className="p-3 whitespace-nowrap">Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              {teamStatsWithQuality.map((t, i) => (
                 <tr key={i} className="border-t hover:bg-gray-50">
-                <td className="p-3 sticky left-0 bg-white z-10 font-medium">{t.name || '-'}</td>
-                <td className="p-3 text-center">
-  {(getStat(t, 'autoLeads') || getStat(t, 'auto') || 0) + (getStat(t, 'manualLeads') || getStat(t, 'manual') || 0)}
-</td>
-<td className="p-2 text-center">{getStat(t, 'autoLeads') || getStat(t, 'auto') || 0}</td>
-<td className="p-2 text-center">{getStat(t, 'manualLeads') || getStat(t, 'manual') || 0}</td>
-                <td className="p-3 text-center">{getStat(t, 'siteVisits')}</td>
-                <td className="p-3 text-center">{getStat(t, 'siteVisitsDone')}</td>
-                <td className="p-3 text-center">{getStat(t, 'bookings')}</td>
-                <td className="p-3 text-center">{getStat(t, 'autoWIP')}</td>
-                <td className="p-3 text-center">{getStat(t, 'manualWIP')}</td>
-                <td className="p-3 text-center">{getStat(t, 'autoWarm')}</td>
-                <td className="p-3 text-center">{getStat(t, 'manualWarm')}</td>
-                <td className="p-3 text-center">{getStat(t, 'autoCold')}</td>
-                <td className="p-3 text-center">{getStat(t, 'manualCold')}</td>
-                <td className="p-3 text-center">{getStat(t, 'autoRNR')}</td>
-                <td className="p-3 text-center">{getStat(t, 'manualRNR')}</td>
-                <td className="p-3 text-center">{getStat(t, 'autoJunk')}</td>
-                <td className="p-3 text-center">{getStat(t, 'manualJunk')}</td>
-                <td className="p-3 text-center">{getStat(t, 'autoInvalid')}</td>
-                <td className="p-3 text-center">{getStat(t, 'manualInvalid')}</td>
-                {/* <td className="p-2 text-center font-semibold text-blue-600">{getStat(t, 'wip')}</td>
+                  <td className="p-3 sticky left-0 bg-white z-10 font-medium">{t.name || '-'}</td>
+                  <td className="p-3 text-center">
+                    {(getStat(t, 'autoLeads') || getStat(t, 'auto') || 0) + (getStat(t, 'manualLeads') || getStat(t, 'manual') || 0)}
+                  </td>
+                  <td className="p-2 text-center">{getStat(t, 'autoLeads') || getStat(t, 'auto') || 0}</td>
+                  <td className="p-2 text-center">{getStat(t, 'manualLeads') || getStat(t, 'manual') || 0}</td>
+                  <td className="p-3 text-center">{getStat(t, 'siteVisits')}</td>
+                  <td className="p-3 text-center">{getStat(t, 'siteVisitsDone')}</td>
+                  <td className="p-3 text-center">{getStat(t, 'bookings')}</td>
+                  <td className="p-3 text-center">{getStat(t, 'autoWIP')}</td>
+                  <td className="p-3 text-center">{getStat(t, 'manualWIP')}</td>
+                  <td className="p-3 text-center">{getStat(t, 'autoWarm')}</td>
+                  <td className="p-3 text-center">{getStat(t, 'manualWarm')}</td>
+                  <td className="p-3 text-center">{getStat(t, 'autoCold')}</td>
+                  <td className="p-3 text-center">{getStat(t, 'manualCold')}</td>
+                  <td className="p-3 text-center">{getStat(t, 'autoRNR')}</td>
+                  <td className="p-3 text-center">{getStat(t, 'manualRNR')}</td>
+                  <td className="p-3 text-center">{getStat(t, 'autoJunk')}</td>
+                  <td className="p-3 text-center">{getStat(t, 'manualJunk')}</td>
+                  <td className="p-3 text-center">{getStat(t, 'autoInvalid')}</td>
+                  <td className="p-3 text-center">{getStat(t, 'manualInvalid')}</td>
+                  {/* <td className="p-2 text-center font-semibold text-blue-600">{getStat(t, 'wip')}</td>
                 <td className="p-2 text-center font-semibold text-yellow-600">{getStat(t, 'warm')}</td>
                 <td className="p-2 text-center font-semibold text-blue-400">{getStat(t, 'cold')}</td>
                 <td className="p-2 text-center font-semibold text-purple-500">{getStat(t, 'rnr')}</td>
                 <td className="p-2 text-center font-semibold text-red-500">{getStat(t, 'junk')}</td>
                 <td className="p-2 text-center font-semibold text-gray-500">{getStat(t, 'invalid')}</td> */}
-                <td className="p-3 text-center">{getStat(t, 'score')}</td>
-              </tr>
-              
-            ))}
-            {/* Summary row */}
-            <tr className="font-bold bg-gray-100">
-              <td className="p-3 sticky left-0 bg-gray-100 z-10 font-bold">Total</td>
-              <td className="p-2 text-center">
-  {teamStatsWithQuality.reduce((sum, t) =>
-    sum + (getStat(t, 'autoLeads') || getStat(t, 'auto') || 0) +
-          (getStat(t, 'manualLeads') || getStat(t, 'manual') || 0), 0)}
-</td>
-<td className="p-2 text-center">
-  {teamStatsWithQuality.reduce((sum, t) => sum + (getStat(t, 'autoLeads') || getStat(t, 'auto') || 0), 0)}
-</td>
-<td className="p-2 text-center">
-  {teamStatsWithQuality.reduce((sum, t) => sum + (getStat(t, 'manualLeads') || getStat(t, 'manual') || 0), 0)}
-</td>
-              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'siteVisits'), 0)}</td>
-              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'siteVisitsDone'), 0)}</td>
-              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'bookings'), 0)}</td>
-              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'autoWIP'), 0)}</td>
-              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'manualWIP'), 0)}</td>
-              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'autoWarm'), 0)}</td>
-              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'manualWarm'), 0)}</td>
-              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'autoCold'), 0)}</td>
-              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'manualCold'), 0)}</td>
-              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'autoRNR'), 0)}</td>
-              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'manualRNR'), 0)}</td>
-              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'autoJunk'), 0)}</td>
-              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'manualJunk'), 0)}</td>
-              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'autoInvalid'), 0)}</td>
-              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'manualInvalid'), 0)}</td>
-              {/* <td className="p-2 text-center font-semibold text-blue-600">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'wip'), 0)}</td>
+                  <td className="p-3 text-center">{getStat(t, 'score')}</td>
+                </tr>
+
+              ))}
+              {/* Summary row */}
+              <tr className="font-bold bg-gray-100">
+                <td className="p-3 sticky left-0 bg-gray-100 z-10 font-bold">Total</td>
+                <td className="p-2 text-center">
+                  {teamStatsWithQuality.reduce((sum, t) =>
+                    sum + (getStat(t, 'autoLeads') || getStat(t, 'auto') || 0) +
+                    (getStat(t, 'manualLeads') || getStat(t, 'manual') || 0), 0)}
+                </td>
+                <td className="p-2 text-center">
+                  {teamStatsWithQuality.reduce((sum, t) => sum + (getStat(t, 'autoLeads') || getStat(t, 'auto') || 0), 0)}
+                </td>
+                <td className="p-2 text-center">
+                  {teamStatsWithQuality.reduce((sum, t) => sum + (getStat(t, 'manualLeads') || getStat(t, 'manual') || 0), 0)}
+                </td>
+                <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'siteVisits'), 0)}</td>
+                <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'siteVisitsDone'), 0)}</td>
+                <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'bookings'), 0)}</td>
+                <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'autoWIP'), 0)}</td>
+                <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'manualWIP'), 0)}</td>
+                <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'autoWarm'), 0)}</td>
+                <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'manualWarm'), 0)}</td>
+                <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'autoCold'), 0)}</td>
+                <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'manualCold'), 0)}</td>
+                <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'autoRNR'), 0)}</td>
+                <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'manualRNR'), 0)}</td>
+                <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'autoJunk'), 0)}</td>
+                <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'manualJunk'), 0)}</td>
+                <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'autoInvalid'), 0)}</td>
+                <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'manualInvalid'), 0)}</td>
+                {/* <td className="p-2 text-center font-semibold text-blue-600">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'wip'), 0)}</td>
               <td className="p-2 text-center font-semibold text-yellow-600">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'warm'), 0)}</td>
               <td className="p-2 text-center font-semibold text-blue-400">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'cold'), 0)}</td>
               <td className="p-2 text-center font-semibold text-purple-500">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'rnr'), 0)}</td>
               <td className="p-2 text-center font-semibold text-red-500">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'junk'), 0)}</td>
               <td className="p-2 text-center font-semibold text-gray-500">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'invalid'), 0)}</td> */}
-              <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'score'), 0)}</td>
-            </tr>
-          </tbody>
+                <td className="p-2 text-center">{teamStatsWithQuality.reduce((sum, t) => sum + getStat(t, 'score'), 0)}</td>
+              </tr>
+            </tbody>
           </table>
         </div>
       </div>
@@ -906,7 +908,7 @@ export default function AdminDashboard() {
             👥 View All Leads
           </button>
         </div>
-</div>
+      </div>
 
       {/* Chart Toggles */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-10 mb-6">
@@ -974,15 +976,15 @@ export default function AdminDashboard() {
                   <Cell key={`cell-${i}`} fill={color} />
                 ))}
               </Pie>
-              <Tooltip 
+              <Tooltip
                 formatter={(value, name, props) => {
                   const total = teamStats.reduce((sum, t) => {
-                    return sum + 
-                      getStat(t, 'totalWIP') + 
-                      getStat(t, 'totalWarm') + 
-                      getStat(t, 'totalCold') + 
-                      getStat(t, 'totalRNR') + 
-                      getStat(t, 'totalJunk') + 
+                    return sum +
+                      getStat(t, 'totalWIP') +
+                      getStat(t, 'totalWarm') +
+                      getStat(t, 'totalCold') +
+                      getStat(t, 'totalRNR') +
+                      getStat(t, 'totalJunk') +
                       getStat(t, 'totalInvalid');
                   }, 0);
                   const percentage = total > 0 ? (value / total * 100).toFixed(1) + '%' : '0%';
@@ -1102,16 +1104,16 @@ function ProjectInfoEditor() {
 
   // Save project info to Firestore
   const saveProjectInfo = async () => {
-    setError(""); 
+    setError("");
     setSuccess("");
     setLoading(true);
-    
+
     if (projectInfoInput.trim() === "") {
       setError("Project info cannot be empty.");
       setLoading(false);
       return;
     }
-    
+
     let infoToSave;
     try {
       // Try to parse as JSON first
@@ -1120,13 +1122,13 @@ function ProjectInfoEditor() {
       // If not valid JSON, treat as plain text
       infoToSave = { notes: projectInfoInput.trim() };
     }
-    
+
     try {
       await setDoc(doc(db, 'projects', selectedProject), infoToSave, { merge: true });
       setSuccess("✅ Project info updated successfully!");
-      setTimeout(() => { 
-        setSuccess(""); 
-        fetchProjects(); 
+      setTimeout(() => {
+        setSuccess("");
+        fetchProjects();
       }, 2000);
     } catch (err) {
       setError("Failed to save project info: " + err.message);
@@ -1136,14 +1138,14 @@ function ProjectInfoEditor() {
 
   // Create new project
   const createNewProject = async () => {
-    setError(""); 
+    setError("");
     setSuccess("");
-    
-    if (!newProject.name.trim()) { 
-      setError("Project name is required"); 
-      return; 
+
+    if (!newProject.name.trim()) {
+      setError("Project name is required");
+      return;
     }
-    
+
     setLoading(true);
     try {
       let infoToSave = newProject.info;
@@ -1154,7 +1156,7 @@ function ProjectInfoEditor() {
           infoToSave = { notes: newProject.info.trim() };
         }
       }
-      
+
       await setDoc(doc(db, 'projects', newProject.name.trim()), infoToSave);
       setSuccess("✅ Project created successfully!");
       setShowNewProject(false);
@@ -1168,7 +1170,7 @@ function ProjectInfoEditor() {
 
   // Delete/resolve a correction
   const deleteCorrection = async (correctionId) => {
-    setError(""); 
+    setError("");
     setSuccess("");
     setLoading(true);
     try {
@@ -1183,11 +1185,11 @@ function ProjectInfoEditor() {
   };
 
   useEffect(() => { fetchProjects(); }, []);
-  useEffect(() => { 
-    if (selectedProject) { 
-      fetchProjectInfo(selectedProject); 
-      fetchCorrections(selectedProject); 
-    } 
+  useEffect(() => {
+    if (selectedProject) {
+      fetchProjectInfo(selectedProject);
+      fetchCorrections(selectedProject);
+    }
   }, [selectedProject]);
 
   if (!isAdmin) return null;
@@ -1197,46 +1199,46 @@ function ProjectInfoEditor() {
       <h3 className="text-lg font-bold mb-4 text-blue-800">🛠️ Update Project Info</h3>
       {error && <div className="text-red-600 mb-2 p-2 bg-red-50 rounded">{error}</div>}
       {success && <div className="text-green-600 mb-2 p-2 bg-green-50 rounded">{success}</div>}
-      
+
       <div className="mb-4 flex gap-4 items-center">
-        <select 
-          value={selectedProject} 
-          onChange={e => setSelectedProject(e.target.value)} 
+        <select
+          value={selectedProject}
+          onChange={e => setSelectedProject(e.target.value)}
           className="border p-2 rounded"
           disabled={loading}
         >
           <option value="">Select Project</option>
           {projects.map(p => <option key={p} value={p}>{p}</option>)}
         </select>
-        <button 
-          onClick={() => setShowNewProject(!showNewProject)} 
+        <button
+          onClick={() => setShowNewProject(!showNewProject)}
           className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
           disabled={loading}
         >
           {showNewProject ? "Cancel" : "Create New Project"}
         </button>
       </div>
-      
+
       {showNewProject && (
         <div className="mb-4 p-4 border rounded bg-gray-50">
-          <input 
-            className="border p-2 rounded w-full mb-2" 
-            placeholder="Project Name" 
-            value={newProject.name} 
+          <input
+            className="border p-2 rounded w-full mb-2"
+            placeholder="Project Name"
+            value={newProject.name}
             onChange={e => setNewProject({ ...newProject, name: e.target.value })}
           />
-          <textarea 
-            className="border p-2 rounded w-full mb-2" 
-            placeholder="Project Info (JSON or plain text)" 
-            value={typeof newProject.info === 'object' ? JSON.stringify(newProject.info, null, 2) : (newProject.info || '')} 
+          <textarea
+            className="border p-2 rounded w-full mb-2"
+            placeholder="Project Info (JSON or plain text)"
+            value={typeof newProject.info === 'object' ? JSON.stringify(newProject.info, null, 2) : (newProject.info || '')}
             onChange={e => {
               setNewProject({ ...newProject, info: e.target.value });
               setError("");
             }}
             rows={4}
           />
-          <button 
-            onClick={createNewProject} 
+          <button
+            onClick={createNewProject}
             className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
             disabled={loading}
           >
@@ -1244,7 +1246,7 @@ function ProjectInfoEditor() {
           </button>
         </div>
       )}
-      
+
       {selectedProject && (
         <div>
           <div className="mb-4">
@@ -1265,7 +1267,7 @@ function ProjectInfoEditor() {
               💡 Tip: You can enter JSON format or plain text. Plain text will be saved as {"{notes: 'your text'}"}.
             </div>
           </div>
-          
+
           <button
             onClick={saveProjectInfo}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded mt-2 disabled:opacity-50"
@@ -1275,7 +1277,7 @@ function ProjectInfoEditor() {
           </button>
         </div>
       )}
-      
+
       {/* Corrections Section */}
       {selectedProject && corrections.length > 0 && (
         <div className="mt-6">

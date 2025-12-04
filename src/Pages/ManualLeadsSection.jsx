@@ -359,39 +359,31 @@ function ManualLeadsSection({ email }) {
 
       // Prepare URL parameters for the update
       const params = new URLSearchParams();
-
-      // Add required parameters
-      params.append('updateLead', 'true');
+      params.append('action', 'updateManualLead');
       params.append('leadId', leadId);
-      params.append('sheetName', 'Manual Leads');
 
-      // Add all edited fields to the parameters with proper column names
+      // Construct the updates object
+      const updates = {};
       Object.entries(editedData).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
-          // Convert field names to match Google Sheet column names
+        if (value !== undefined && value !== null) {
           let fieldName = key;
-          if (key === 'siteVisit') fieldName = 'Site Visit?';
+          // Map frontend keys to backend expected keys
+          if (key === 'siteVisit') fieldName = 'Site Visit';
           if (key === 'siteVisitDate') fieldName = 'Site Visit Date';
-          if (key === 'siteVisitDone') fieldName = 'Site Visit Done?';
+          if (key === 'siteVisitDone') fieldName = 'Site Visit Done';
           if (key === 'siteVisitDoneDate') fieldName = 'Site Visit Done Date';
-          if (key === 'booked') fieldName = 'Booked?';
+          if (key === 'booked') fieldName = 'Booked';
           if (key === 'leadQuality') fieldName = 'Lead Quality';
           if (key === 'overallQuality') fieldName = 'Overall Quality';
-          if (key === 'leadEmail') fieldName = 'Email';
+          if (key === 'leadEmail') fieldName = 'Lead Email';
           if (key === 'date') fieldName = 'Date';
           if (key === 'lookingFor') fieldName = 'Looking For';
 
-          params.append(fieldName, value);
+          updates[fieldName] = value;
         }
       });
 
-      // Add feedback fields if they exist
-      for (let i = 1; i <= 5; i++) {
-        const feedbackKey = `feedback${i}`;
-        if (editedData[feedbackKey] !== undefined && editedData[feedbackKey] !== '') {
-          params.append(`Feedback ${i}`, editedData[feedbackKey]);
-        }
-      }
+      params.append('updates', JSON.stringify(updates));
 
       const url = `${scriptUrl}?${params.toString()}`;
       console.log('Sending update to URL:', url);
