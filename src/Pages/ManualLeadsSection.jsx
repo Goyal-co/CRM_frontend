@@ -66,7 +66,7 @@ function ManualLeadsSection({ email }) {
             booked: lead["Booked?"] || lead["Booked"] || "",
             leadQuality: lead["Lead Quality"] || lead["LeadQuality"] || lead["Quality"] || "",
             overallQuality: lead["Overall Quality"] || lead["OverallQuality"] || lead["Overall"] || "",
-            leadEmail: lead["Email"] || lead["Email ID"] || lead["Email Address"] || "",
+            leadEmail: lead["Lead Email"] || lead["LeadEmail"] || lead["Email"] || lead["Email ID"] || lead["Email Address"] || "",
             date: lead["Date"] || lead["Created At"] || "",
             feedback1: lead["Feedback 1"] || lead["Feedback1"] || "",
             feedback2: lead["Feedback 2"] || lead["Feedback2"] || "",
@@ -677,12 +677,12 @@ function ManualLeadsSection({ email }) {
                     {isEditable ? (
                       <input
                         type="text"
-                        value={values.leadEmail !== undefined ? values.leadEmail : (lead["Email"] || lead["Email ID"] || "")}
+                        value={values.leadEmail !== undefined ? values.leadEmail : (lead["Lead Email"] || lead["LeadEmail"] || lead["Email"] || lead["Email ID"] || "")}
                         onChange={(e) => handleEditInput(id, "leadEmail", e.target.value)}
                         className="border px-2 py-1 rounded w-full"
                       />
                     ) : (
-                      lead["Email"] || lead["Email ID"] || "-"
+                      lead["Lead Email"] || lead["LeadEmail"] || lead["Email"] || lead["Email ID"] || "-"
                     )}
                   </td>
                   <td className="p-2">
