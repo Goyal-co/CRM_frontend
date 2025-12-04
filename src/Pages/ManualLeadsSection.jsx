@@ -686,11 +686,21 @@ function ManualLeadsSection({ email }) {
                     )}
                   </td>
                   <td className="p-2">
-                    {lead["Date"] ? new Date(lead["Date"]).toLocaleDateString('en-IN', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric'
-                    }) : "-"}
+                    {(() => {
+                      const dateVal = lead["Date"] || lead["Created At"];
+                      if (!dateVal) return "-";
+                      try {
+                        const date = new Date(dateVal);
+                        if (isNaN(date.getTime())) return dateVal; // Return original string if invalid date
+                        return date.toLocaleDateString('en-IN', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        });
+                      } catch (e) {
+                        return dateVal;
+                      }
+                    })()}
                   </td>
                   <td className="p-2">{lead["Assignee"]}</td>
                   <td className="p-2">
