@@ -15,7 +15,6 @@ function ManualLeadsSection({ email }) {
   const [newLead, setNewLead] = useState({
     project: "",
     name: "",
-    email: "",
     phone: "",
     lookingFor: "",
     siteVisit: "",
@@ -53,11 +52,8 @@ function ManualLeadsSection({ email }) {
       const data = await res.json();
 
       if (Array.isArray(data)) {
-        // Sort leads by reversing the array (assuming sheet is append-only, so last is newest)
-        const sortedLeads = [...data].reverse();
-        console.log("Manual Leads Data:", data);
-        console.log("Sorted Leads (First 2):", sortedLeads.slice(0, 2));
-        setLeads(sortedLeads);
+        // Set the leads data
+        setLeads(data);
 
         // Initialize edited values with all fields from the sheet
         const values = {};
@@ -67,8 +63,6 @@ function ManualLeadsSection({ email }) {
             siteVisitDone: lead["Site Visit Done?"] || lead["SiteVisitDone"] || "",
             booked: lead["Booked?"] || lead["Booked"] || "",
             leadQuality: lead["Lead Quality"] || lead["LeadQuality"] || lead["Quality"] || "",
-            overallQuality: lead["Overall Quality"] || lead["OverallQuality"] || "",
-            email: lead["Email"] || lead["email"] || lead["Lead Email"] || "",
             feedback1: lead["Feedback 1"] || lead["Feedback1"] || "",
             feedback2: lead["Feedback 2"] || lead["Feedback2"] || "",
             feedback3: lead["Feedback 3"] || lead["Feedback3"] || "",
@@ -162,7 +156,6 @@ function ManualLeadsSection({ email }) {
       const formattedData = {
         project: newLead.project,
         name: newLead.name,
-        email: newLead.email, // Add email to the formatted data
         phone: newLead.phone,
         lookingFor: newLead.lookingFor || '',
         siteVisit: newLead.siteVisit || 'No',
@@ -175,8 +168,7 @@ function ManualLeadsSection({ email }) {
         feedback2: newLead.feedback2 || '',
         feedback3: newLead.feedback3 || '',
         feedback4: newLead.feedback4 || '',
-        feedback5: newLead.feedback5 || '',
-        overallQuality: newLead.overallQuality || ''
+        feedback5: newLead.feedback5 || ''
       };
 
       console.log('Submitting new lead with data:', formattedData);
@@ -185,10 +177,9 @@ function ManualLeadsSection({ email }) {
       const leadData = {
         action: "addManualLead",
         leadId,
-        email, // Assignee email
+        email,
         project: formattedData.project,
         name: formattedData.name,
-        leadEmail: formattedData.email, // Lead email (renamed to avoid conflict)
         phone: formattedData.phone,
         lookingFor: formattedData.lookingFor,
         siteVisit: formattedData.siteVisit,
@@ -201,8 +192,7 @@ function ManualLeadsSection({ email }) {
         feedback3: formattedData.feedback3,
         feedback4: formattedData.feedback4,
         feedback5: formattedData.feedback5,
-        leadQuality: formattedData.leadQuality,
-        overallQuality: formattedData.overallQuality
+        leadQuality: formattedData.leadQuality
       };
 
       const params = new URLSearchParams(leadData);
@@ -211,7 +201,6 @@ function ManualLeadsSection({ email }) {
       setNewLead({
         project: "",
         name: "",
-        email: "",
         phone: "",
         lookingFor: "",
         siteVisit: "",
@@ -357,12 +346,11 @@ function ManualLeadsSection({ email }) {
       const params = new URLSearchParams();
 
       // Add required parameters
-      params.append('action', 'updateManualLead');
+      params.append('updateLead', 'true');
       params.append('leadId', leadId);
+      params.append('sheetName', 'Manual Leads');
 
-      const updates = {};
-
-      // Add all edited fields to the updates object with proper column names
+      // Add all edited fields to the parameters with proper column names
       Object.entries(editedData).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
           // Convert field names to match Google Sheet column names
@@ -374,10 +362,8 @@ function ManualLeadsSection({ email }) {
           if (key === 'booked') fieldName = 'Booked?';
           if (key === 'leadQuality') fieldName = 'Lead Quality';
           if (key === 'lookingFor') fieldName = 'Looking For';
-          if (key === 'overallQuality') fieldName = 'Overall Quality';
-          if (key === 'email') fieldName = 'email';
 
-          updates[fieldName] = value;
+          params.append(fieldName, value);
         }
       });
 
@@ -385,11 +371,9 @@ function ManualLeadsSection({ email }) {
       for (let i = 1; i <= 5; i++) {
         const feedbackKey = `feedback${i}`;
         if (editedData[feedbackKey] !== undefined && editedData[feedbackKey] !== '') {
-          updates[`Feedback${i}`] = editedData[feedbackKey];
+          params.append(`Feedback ${i}`, editedData[feedbackKey]);
         }
       }
-
-      params.append('updates', JSON.stringify(updates));
 
       const url = `${scriptUrl}?${params.toString()}`;
       console.log('Sending update to URL:', url);
@@ -409,10 +393,6 @@ function ManualLeadsSection({ email }) {
       }
 
       console.log('Update result:', result);
-      if (result.debug) {
-        console.log('Server Debug Log:', result.debug.join('\n'));
-        alert('Debug Info:\n' + result.debug.join('\n')); // Temporary alert to show the user what happened
-      }
 
       if (result.error) {
         throw new Error(result.error);
@@ -447,7 +427,24 @@ function ManualLeadsSection({ email }) {
 
   useEffect(() => {
     fetchManualLeads();
-  }, [email]);
+  }, []);
+
+  // Filter leads based on search term
+  const filteredLeads = leads.filter(lead => {
+    // If no search term, include all leads
+    if (!searchTerm) return true;
+
+    const searchLower = searchTerm.toLowerCase();
+
+    // Safely check each field with null/undefined checks
+    const nameMatch = lead['Name']?.toLowerCase().includes(searchLower) || false;
+    const phoneMatch = lead['Phone Number']?.toString().includes(searchTerm) || false;
+    const projectMatch = lead['Project']?.toLowerCase().includes(searchLower) || false;
+    const lookingForMatch = lead['Looking For']?.toLowerCase().includes(searchLower) || false;
+    const leadQualityMatch = lead['Lead Quality']?.toLowerCase().includes(searchLower) || false;
+
+    return nameMatch || phoneMatch || projectMatch || lookingForMatch || leadQualityMatch;
+  });
 
   // Show video loader when loading
   if (loading) {
@@ -461,13 +458,6 @@ function ManualLeadsSection({ email }) {
       </div>
     );
   }
-
-  // Filter leads based on search term
-  const filteredLeads = leads.filter(lead =>
-    (lead.Name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (lead.Email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (lead['Phone Number'] || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   // Get current leads for pagination
   const indexOfLastLead = currentPage * leadsPerPage;
@@ -523,7 +513,6 @@ function ManualLeadsSection({ email }) {
             <option value="Riviera Uno">Riviera Uno</option>
           </select>
           <input type="text" placeholder="Name" value={newLead.name} onChange={(e) => handleInputChange("name", e.target.value)} className="border border-blue-200 rounded px-3 py-2" />
-          <input type="email" placeholder="Email" value={newLead.email} onChange={(e) => handleInputChange("email", e.target.value)} className="border border-blue-200 rounded px-3 py-2" />
           <input type="text" placeholder="Phone Number" value={newLead.phone} onChange={(e) => handleInputChange("phone", e.target.value)} className="border border-blue-200 rounded px-3 py-2" />
           <input
             type="text"
@@ -626,22 +615,21 @@ function ManualLeadsSection({ email }) {
               <th className="p-2">Lead ID</th>
               <th className="p-2">Project</th>
               <th className="p-2">Name</th>
-              <th className="p-2">Phone Number</th>
+              <th className="p-2">Phone</th>
               <th className="p-2">Looking For?</th>
               <th className="p-2">Assignee</th>
               <th className="p-2">Site Visit?</th>
               <th className="p-2">Site Visit Date</th>
+              <th className="p-2">Site Visit Done?</th>
+              <th className="p-2">Site Visit Done Date</th>
               <th className="p-2">Booked?</th>
+              <th className="p-2">Lead Quality</th>
+              <th className="p-2">Overall Quality</th>
               <th className="p-2">Feedback 1</th>
               <th className="p-2">Feedback 2</th>
               <th className="p-2">Feedback 3</th>
               <th className="p-2">Feedback 4</th>
               <th className="p-2">Feedback 5</th>
-              <th className="p-2">Lead Quality</th>
-              <th className="p-2">Site Visit Done?</th>
-              <th className="p-2">Site Visit Done Date</th>
-              <th className="p-2">Overall Quality</th>
-              <th className="p-2">Email</th>
               <th className="p-2">Action</th>
             </tr>
           </thead>
@@ -749,65 +737,6 @@ function ManualLeadsSection({ email }) {
                   </td>
                   <td className="p-2">
                     {isEditable ? (
-                      <select value={values.booked || lead["Booked?"]} onChange={(e) => handleEditInput(id, "booked", e.target.value)} className="border px-2 py-1 rounded">
-                        <option value="No">No</option>
-                        <option value="Yes">Yes</option>
-                      </select>
-                    ) : lead["Booked?"]}
-                  </td>
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <td key={i} className="p-2 min-w-[150px]">
-                      {isEditable ? (
-                        <div
-                          className={`relative ${expandedFeedback[`${lead["Lead ID"]}-${i}`] ? 'fixed inset-0 z-50 bg-white p-4 shadow-lg' : ''}`}
-                          onClick={() => toggleFeedbackExpansion(lead["Lead ID"], i)}
-                        >
-                          <textarea
-                            className={`w-full p-2 border rounded ${expandedFeedback[`${lead["Lead ID"]}-${i}`] ? 'h-64' : 'h-20'}`}
-                            value={editedValues[lead["Lead ID"]]?.[`feedback${i}`] || lead[`Feedback ${i}`] || ''}
-                            onChange={(e) => handleEditInput(lead["Lead ID"], `feedback${i}`, e.target.value)}
-                            onClick={(e) => e.stopPropagation()}
-                            placeholder={`Enter feedback ${i}...`}
-                            rows="3"
-                          />
-                          {expandedFeedback[`${lead["Lead ID"]}-${i}`] && (
-                            <button
-                              className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleFeedbackExpansion(lead["Lead ID"], i);
-                              }}
-                            >
-                              Done
-                            </button>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="whitespace-pre-wrap">{lead[`Feedback ${i}`]}</div>
-                      )}
-                    </td>
-                  ))}
-                  <td className="p-2">
-                    {isEditable ? (
-                      <select
-                        value={values.leadQuality !== undefined ? values.leadQuality : (lead["Lead Quality"] || lead["Quality"] || '')}
-                        onChange={(e) => handleEditInput(id, "leadQuality", e.target.value)}
-                        className="border px-2 py-1 rounded"
-                      >
-                        <option value="">Select</option>
-                        <option value="WIP">WIP</option>
-                        <option value="Warm">Warm</option>
-                        <option value="Cold">Cold</option>
-                        <option value="RNR">RNR</option>
-                        <option value="Junk">Junk</option>
-                        <option value="Invalid">Invalid</option>
-                      </select>
-                    ) : (
-                      lead["Lead Quality"] || lead["Quality"] || 'N/A'
-                    )}
-                  </td>
-                  <td className="p-2">
-                    {isEditable ? (
                       <div className="flex flex-col space-y-2">
                         <select
                           value={values.siteVisitDone !== undefined ? values.siteVisitDone : (lead["Site Visit Done?"] || 'No')}
@@ -895,6 +824,33 @@ function ManualLeadsSection({ email }) {
                   </td>
                   <td className="p-2">
                     {isEditable ? (
+                      <select value={values.booked || lead["Booked?"]} onChange={(e) => handleEditInput(id, "booked", e.target.value)} className="border px-2 py-1 rounded">
+                        <option value="No">No</option>
+                        <option value="Yes">Yes</option>
+                      </select>
+                    ) : lead["Booked?"]}
+                  </td>
+                  <td className="p-2">
+                    {isEditable ? (
+                      <select
+                        value={values.leadQuality !== undefined ? values.leadQuality : (lead["Lead Quality"] || lead["Quality"] || '')}
+                        onChange={(e) => handleEditInput(id, "leadQuality", e.target.value)}
+                        className="border px-2 py-1 rounded"
+                      >
+                        <option value="">Select</option>
+                        <option value="WIP">WIP</option>
+                        <option value="Warm">Warm</option>
+                        <option value="Cold">Cold</option>
+                        <option value="RNR">RNR</option>
+                        <option value="Junk">Junk</option>
+                        <option value="Invalid">Invalid</option>
+                      </select>
+                    ) : (
+                      lead["Lead Quality"] || lead["Quality"] || 'N/A'
+                    )}
+                  </td>
+                  <td className="p-2">
+                    {isEditable ? (
                       <select
                         value={values.overallQuality !== undefined ? values.overallQuality : (lead["Overall Quality"] || '')}
                         onChange={(e) => handleEditInput(id, "overallQuality", e.target.value)}
@@ -909,19 +865,39 @@ function ManualLeadsSection({ email }) {
                       lead["Overall Quality"] || 'N/A'
                     )}
                   </td>
-                  <td className="p-2">
-                    {isEditable ? (
-                      <input
-                        type="email"
-                        value={values.email !== undefined ? values.email : (lead["Email"] || lead["email"] || lead["Lead Email"] || '')}
-                        onChange={(e) => handleEditInput(id, "email", e.target.value)}
-                        className="border px-2 py-1 rounded w-full"
-                        placeholder="Enter email"
-                      />
-                    ) : (
-                      lead["Email"] || lead["email"] || lead["Lead Email"] || ''
-                    )}
-                  </td>
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <td key={i} className="p-2 min-w-[150px]">
+                      {isEditable ? (
+                        <div
+                          className={`relative ${expandedFeedback[`${lead["Lead ID"]}-${i}`] ? 'fixed inset-0 z-50 bg-white p-4 shadow-lg' : ''}`}
+                          onClick={() => toggleFeedbackExpansion(lead["Lead ID"], i)}
+                        >
+                          <textarea
+                            className={`w-full p-2 border rounded ${expandedFeedback[`${lead["Lead ID"]}-${i}`] ? 'h-64' : 'h-20'}`}
+                            value={editedValues[lead["Lead ID"]]?.[`feedback${i}`] || lead[`Feedback ${i}`] || ''}
+                            onChange={(e) => handleEditInput(lead["Lead ID"], `feedback${i}`, e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            placeholder={`Enter feedback ${i}...`}
+                            rows="3"
+                          />
+                          {expandedFeedback[`${lead["Lead ID"]}-${i}`] && (
+                            <button
+                              className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleFeedbackExpansion(lead["Lead ID"], i);
+                              }}
+                            >
+                              Done
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="whitespace-pre-wrap">{lead[`Feedback ${i}`]}</div>
+                      )}
+                    </td>
+                  ))}
+
                   <td className="p-2">
                     {isEditable && (
                       <button onClick={() => handleUpdate(id)} className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded">
