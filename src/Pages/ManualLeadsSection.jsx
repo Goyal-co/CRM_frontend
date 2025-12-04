@@ -546,13 +546,6 @@ function ManualLeadsSection({ email }) {
             onChange={(e) => handleInputChange("leadEmail", e.target.value)}
             className="border border-blue-200 rounded px-3 py-2"
           />
-          <input
-            type="date"
-            placeholder="Date"
-            value={newLead.date}
-            onChange={(e) => handleInputChange("date", e.target.value)}
-            className="border border-blue-200 rounded px-3 py-2"
-          />
           <div className="w-full">
             <select
               value={newLead.siteVisit}
@@ -693,16 +686,11 @@ function ManualLeadsSection({ email }) {
                     )}
                   </td>
                   <td className="p-2">
-                    {isEditable ? (
-                      <input
-                        type="date"
-                        value={values.date !== undefined ? values.date : (lead["Date"] ? formatDateForInput(lead["Date"]) : "")}
-                        onChange={(e) => handleEditInput(id, "date", e.target.value)}
-                        className="border px-2 py-1 rounded w-full"
-                      />
-                    ) : (
-                      lead["Date"] ? new Date(lead["Date"]).toLocaleDateString('en-IN') : "-"
-                    )}
+                    {lead["Date"] ? new Date(lead["Date"]).toLocaleDateString('en-IN', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric'
+                    }) : "-"}
                   </td>
                   <td className="p-2">{lead["Assignee"]}</td>
                   <td className="p-2">
