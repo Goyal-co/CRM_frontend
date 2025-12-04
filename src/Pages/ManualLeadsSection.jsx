@@ -17,6 +17,8 @@ function ManualLeadsSection({ email }) {
     name: "",
     phone: "",
     lookingFor: "",
+    leadEmail: "",
+    date: "",
     siteVisit: "",
     siteVisitDate: "",
     siteVisitDone: "",
@@ -63,6 +65,9 @@ function ManualLeadsSection({ email }) {
             siteVisitDone: lead["Site Visit Done?"] || lead["SiteVisitDone"] || "",
             booked: lead["Booked?"] || lead["Booked"] || "",
             leadQuality: lead["Lead Quality"] || lead["LeadQuality"] || lead["Quality"] || "",
+            overallQuality: lead["Overall Quality"] || lead["OverallQuality"] || lead["Overall"] || "",
+            leadEmail: lead["Email"] || lead["Email ID"] || lead["Email Address"] || "",
+            date: lead["Date"] || lead["Created At"] || "",
             feedback1: lead["Feedback 1"] || lead["Feedback1"] || "",
             feedback2: lead["Feedback 2"] || lead["Feedback2"] || "",
             feedback3: lead["Feedback 3"] || lead["Feedback3"] || "",
@@ -158,12 +163,15 @@ function ManualLeadsSection({ email }) {
         name: newLead.name,
         phone: newLead.phone,
         lookingFor: newLead.lookingFor || '',
+        leadEmail: newLead.leadEmail || '',
+        date: newLead.date || '',
         siteVisit: newLead.siteVisit || 'No',
         siteVisitDate: formattedDate,
         siteVisitDone: newLead.siteVisitDone || 'No',
         siteVisitDoneDate: formattedDoneDate,
         booked: newLead.booked || 'No',
         leadQuality: newLead.leadQuality || 'WIP',
+        overallQuality: newLead.overallQuality || '',
         feedback1: newLead.feedback1 || '',
         feedback2: newLead.feedback2 || '',
         feedback3: newLead.feedback3 || '',
@@ -177,10 +185,13 @@ function ManualLeadsSection({ email }) {
       const leadData = {
         action: "addManualLead",
         leadId,
+        leadId,
         email,
         project: formattedData.project,
         name: formattedData.name,
         phone: formattedData.phone,
+        leadEmail: formattedData.leadEmail,
+        date: formattedData.date,
         lookingFor: formattedData.lookingFor,
         siteVisit: formattedData.siteVisit,
         siteVisitDate: formattedData.siteVisitDate,
@@ -192,7 +203,8 @@ function ManualLeadsSection({ email }) {
         feedback3: formattedData.feedback3,
         feedback4: formattedData.feedback4,
         feedback5: formattedData.feedback5,
-        leadQuality: formattedData.leadQuality
+        leadQuality: formattedData.leadQuality,
+        overallQuality: formattedData.overallQuality
       };
 
       const params = new URLSearchParams(leadData);
@@ -203,6 +215,8 @@ function ManualLeadsSection({ email }) {
         name: "",
         phone: "",
         lookingFor: "",
+        leadEmail: "",
+        date: "",
         siteVisit: "",
         siteVisitDate: "",
         siteVisitDone: "",
@@ -214,6 +228,7 @@ function ManualLeadsSection({ email }) {
         feedback4: "",
         feedback5: "",
         leadQuality: "",
+        overallQuality: "",
       });
       setCurrentPage(1);
       fetchManualLeads();
@@ -361,6 +376,9 @@ function ManualLeadsSection({ email }) {
           if (key === 'siteVisitDoneDate') fieldName = 'Site Visit Done Date';
           if (key === 'booked') fieldName = 'Booked?';
           if (key === 'leadQuality') fieldName = 'Lead Quality';
+          if (key === 'overallQuality') fieldName = 'Overall Quality';
+          if (key === 'leadEmail') fieldName = 'Email';
+          if (key === 'date') fieldName = 'Date';
           if (key === 'lookingFor') fieldName = 'Looking For';
 
           params.append(fieldName, value);
@@ -521,6 +539,20 @@ function ManualLeadsSection({ email }) {
             onChange={(e) => handleInputChange("lookingFor", e.target.value)}
             className="border border-blue-200 rounded px-3 py-2"
           />
+          <input
+            type="email"
+            placeholder="Lead Email"
+            value={newLead.leadEmail}
+            onChange={(e) => handleInputChange("leadEmail", e.target.value)}
+            className="border border-blue-200 rounded px-3 py-2"
+          />
+          <input
+            type="date"
+            placeholder="Date"
+            value={newLead.date}
+            onChange={(e) => handleInputChange("date", e.target.value)}
+            className="border border-blue-200 rounded px-3 py-2"
+          />
           <div className="w-full">
             <select
               value={newLead.siteVisit}
@@ -617,6 +649,8 @@ function ManualLeadsSection({ email }) {
               <th className="p-2">Name</th>
               <th className="p-2">Phone</th>
               <th className="p-2">Looking For?</th>
+              <th className="p-2">Email</th>
+              <th className="p-2">Date</th>
               <th className="p-2">Assignee</th>
               <th className="p-2">Site Visit?</th>
               <th className="p-2">Site Visit Date</th>
@@ -646,6 +680,30 @@ function ManualLeadsSection({ email }) {
                   <td className="p-2">{lead["Name"]}</td>
                   <td className="p-2">{lead["Phone Number"]}</td>
                   <td className="p-2">{lead["Looking For"] || lead["Looking For?"]}</td>
+                  <td className="p-2">
+                    {isEditable ? (
+                      <input
+                        type="text"
+                        value={values.leadEmail !== undefined ? values.leadEmail : (lead["Email"] || lead["Email ID"] || "")}
+                        onChange={(e) => handleEditInput(id, "leadEmail", e.target.value)}
+                        className="border px-2 py-1 rounded w-full"
+                      />
+                    ) : (
+                      lead["Email"] || lead["Email ID"] || "-"
+                    )}
+                  </td>
+                  <td className="p-2">
+                    {isEditable ? (
+                      <input
+                        type="date"
+                        value={values.date !== undefined ? values.date : (lead["Date"] ? formatDateForInput(lead["Date"]) : "")}
+                        onChange={(e) => handleEditInput(id, "date", e.target.value)}
+                        className="border px-2 py-1 rounded w-full"
+                      />
+                    ) : (
+                      lead["Date"] ? new Date(lead["Date"]).toLocaleDateString('en-IN') : "-"
+                    )}
+                  </td>
                   <td className="p-2">{lead["Assignee"]}</td>
                   <td className="p-2">
                     {isEditable ? (
