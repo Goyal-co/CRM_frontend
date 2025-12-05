@@ -54,6 +54,9 @@ function ManualLeadsSection({ email }) {
       const data = await res.json();
 
       if (Array.isArray(data)) {
+        // Reverse data to show latest first
+        data.reverse();
+
         // Set the leads data
         setLeads(data);
 
@@ -184,7 +187,6 @@ function ManualLeadsSection({ email }) {
       const leadId = "ML" + Date.now().toString().slice(-6);
       const leadData = {
         action: "addManualLead",
-        leadId,
         leadId,
         email,
         project: formattedData.project,

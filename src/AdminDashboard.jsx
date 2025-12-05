@@ -21,6 +21,7 @@ import TitanAiCallAnalysis from './TitanAiCallAnalysis';
 import VideoLoader from './components/VideoLoader';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import { db } from './firebase-config';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -47,6 +48,7 @@ export default function AdminDashboard() {
   const [leadsSnapshot, setLeadsSnapshot] = useState({
     userStats: [],
     sourceStats: [],
+    projectStats: [],
     allLeadsData: []
   });
   const [snapshotLoading, setSnapshotLoading] = useState(false);
@@ -221,7 +223,7 @@ export default function AdminDashboard() {
       }
 
       const data = await response.json();
-      console.log("Snapshot data received:", data); // Debug log
+      console.log("Snapshot data received (full):", JSON.stringify(data)); // Debug log
 
       if (data.error) {
         throw new Error(data.error);
@@ -231,6 +233,7 @@ export default function AdminDashboard() {
       const validData = {
         userStats: Array.isArray(data.userStats) ? data.userStats : [],
         sourceStats: Array.isArray(data.sourceStats) ? data.sourceStats : [],
+        projectStats: Array.isArray(data.projectStats) ? data.projectStats : [],
         allLeadsData: Array.isArray(data.allLeadsData) ? data.allLeadsData : []
       };
 
@@ -251,6 +254,7 @@ export default function AdminDashboard() {
       setLeadsSnapshot({
         userStats: [],
         sourceStats: [],
+        projectStats: [],
         allLeadsData: []
       });
     } finally {
@@ -496,7 +500,6 @@ export default function AdminDashboard() {
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
       <h2 className="text-2xl font-bold mb-6 text-center">Admin Dashboard</h2>
-      <ProjectInfoEditor />
       {/* Filters */}
       <div className="flex flex-wrap gap-4 mb-6 justify-center">
         <select onChange={e => handleFilterChange("project", e.target.value)} className="p-2 border rounded w-48">
@@ -747,6 +750,59 @@ export default function AdminDashboard() {
                     ) : (
                       <tr>
                         <td colSpan="13" className="p-3 text-center text-gray-500">No source data available</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Project Statistics */}
+            <div>
+              <h4 className="text-md font-semibold mb-3 text-gray-700">Project-wise Lead Statistics</h4>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm border border-gray-200">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="p-3 text-left border">Project</th>
+                      <th className="p-3 text-center border">Total Leads</th>
+                      <th className="p-3 text-center border">Called</th>
+                      <th className="p-3 text-center border">Site Visits</th>
+                      <th className="p-3 text-center border">Site Visits Done</th>
+                      <th className="p-3 text-center border">Bookings</th>
+                      <th className="p-3 text-center border">WIP</th>
+                      <th className="p-3 text-center border">Warm</th>
+                      <th className="p-3 text-center border">Cold</th>
+                      <th className="p-3 text-center border">RNR</th>
+                      <th className="p-3 text-center border">Junk</th>
+                      <th className="p-3 text-center border">Invalid</th>
+                      <th className="p-3 text-center border">Conversion %</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {leadsSnapshot.projectStats && leadsSnapshot.projectStats.length > 0 ? (
+                      leadsSnapshot.projectStats.map((project, i) => (
+                        <tr key={i} className="border-t hover:bg-gray-50">
+                          <td className="p-3 font-medium border">{project.project || 'Unknown'}</td>
+                          <td className="p-3 text-center border">{project.totalLeads || 0}</td>
+                          <td className="p-3 text-center border">{project.called || 0}</td>
+                          <td className="p-3 text-center border">{project.siteVisits || 0}</td>
+                          <td className="p-3 text-center border">{project.siteVisitsDone || 0}</td>
+                          <td className="p-3 text-center border">{project.bookings || 0}</td>
+                          <td className="p-3 text-center border text-blue-600">{project.qualityBreakdown?.WIP || 0}</td>
+                          <td className="p-3 text-center border text-green-600">{project.qualityBreakdown?.Warm || 0}</td>
+                          <td className="p-3 text-center border text-yellow-600">{project.qualityBreakdown?.Cold || 0}</td>
+                          <td className="p-3 text-center border text-orange-600">{project.qualityBreakdown?.RNR || 0}</td>
+                          <td className="p-3 text-center border text-red-600">{project.qualityBreakdown?.Junk || 0}</td>
+                          <td className="p-3 text-center border text-gray-600">{project.qualityBreakdown?.Invalid || 0}</td>
+                          <td className="p-3 text-center border font-semibold">
+                            {(project.totalLeads && project.totalLeads > 0) ? ((project.bookings || 0) / project.totalLeads * 100).toFixed(1) : 0}%
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="13" className="p-3 text-center text-gray-500">No project data available</td>
                       </tr>
                     )}
                   </tbody>
