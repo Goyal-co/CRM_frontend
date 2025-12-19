@@ -7,9 +7,9 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install ALL dependencies (including devDependencies for build)
-# Using npm install instead of npm ci so new dependencies in package.json
-# are installed even if package-lock.json is not yet updated locally.
-RUN npm install
+# Use --legacy-peer-deps to bypass strict peer dependency resolution, which
+# avoids conflicts between React 19 and some libraries (e.g. @sentry/react).
+RUN npm install --legacy-peer-deps
 
 # Copy source code
 COPY . .
