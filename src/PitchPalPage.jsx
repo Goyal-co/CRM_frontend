@@ -3,9 +3,35 @@ import { db } from './firebase-config.js';
 import { doc, getDoc, setDoc, collection, addDoc, getDocs } from 'firebase/firestore';
 
 // Fallback API URL if environment variable is not set
-const API_URL = import.meta.env.VITE_API_URL || 'https://api.goyalhariyanacrm.in/';
+// Handle both full URLs and relative paths (for proxy)
+const getApiUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL || 'https://api.goyalhariyanacrm.in/';
+  // If it's a relative path (starts with /), use it directly for proxy
+  if (envUrl.startsWith('/')) {
+    return envUrl; // e.g., '/api'
+  }
+  // If it's a full URL, ensure it ends with /
+  return envUrl.endsWith('/') ? envUrl : `${envUrl}/`;
+};
 
-console.log('PitchPal using API URL:', API_URL);
+const API_BASE = getApiUrl();
+// Construct the full endpoint URL
+const getEndpoint = (path) => {
+  // Remove leading slash from path if present
+  const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+  
+  if (API_BASE.startsWith('/')) {
+    // Relative path (proxy) - use path directly with leading slash
+    // e.g., if API_BASE is '/api' and path is 'api/generate-pitch', return '/api/generate-pitch'
+    return `/${cleanPath}`;
+  }
+  // Full URL - append the path
+  // e.g., if API_BASE is 'https://api.goyalhariyanacrm.in/' and path is 'api/generate-pitch'
+  // return 'https://api.goyalhariyanacrm.in/api/generate-pitch'
+  return `${API_BASE}${cleanPath}`;
+};
+
+console.log('PitchPal using API URL:', API_BASE);
 
 export default function PitchPalPage() {
   const [projectName, setProjectName] = useState("");
@@ -80,7 +106,7 @@ export default function PitchPalPage() {
       if (!projectInfo) {
         // If not found, call backend with only projectName
         console.log('No project info found, generating from scratch...');
-        backendRes = await fetch(`${API_URL}/api/generate-pitch`, {
+        backendRes = await fetch(getEndpoint('api/generate-pitch'), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ projectName }),
